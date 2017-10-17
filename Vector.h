@@ -10,9 +10,12 @@ public:
 	std::string toString();
 	Vector operator+(Vector other);
 	Vector operator-(Vector other);
-	Vector operator*(Vector other);
+	double operator*(Vector other);
 	Vector operator*(double factor);
-	double scale(Vector);
+	double abs();
+	//double scale(Vector);
+	Vector cross(Vector);
+	Vector normalize();
 
 
 private:
