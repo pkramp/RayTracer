@@ -72,6 +72,7 @@
   <ItemGroup>
     <ClInclude Include="BMP\Bitmap.h" />
     <ClInclude Include="BMP\BMPHandler.h" />
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="Vector.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
