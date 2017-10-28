@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
 	Vector Y(0, 1, 0);
 	Vector Z(0, 0, 1);
 
-	Vector campos(10, 10, -10);
+	Vector campos(0, 0, 5);
 	Vector look_at(Origin);
 	Vector diff_btw(campos.x - look_at.x, campos.y - look_at.y, campos.z - look_at.z);
 
@@ -103,7 +103,8 @@ int main(int argc, char** argv) {
 	Camera scene_cam(campos, camdir, camright, camdown);
 	double xamnt, yamnt;
 
-	Sphere sphere(Vector(2, 2, 0), 2);
+	Sphere sphere(Vector(0, 0, 0), 1.5);
+	Vector light(0, 3, 0);
 
 	for (int x = 0; x < imageWidth; x++) {
 		for (int y = 0; y < imageHeight; y++) {
@@ -133,15 +134,28 @@ int main(int argc, char** argv) {
 
 			double intersectValue = sphere.intersect(cameraRay);
 
-			if(intersectValue == -1){
+			if(intersectValue == -1) {
 				pixels[thisPixel].r = 0;
 				pixels[thisPixel].g = 0;
 				pixels[thisPixel].b = 0;
 			}
 			else {
-				pixels[thisPixel].r = 255;
-				pixels[thisPixel].g = 255;
-				pixels[thisPixel].b = 255;
+				Vector intersection_position = cam_ray_origin.vectAdd(cam_ray_direction.vectMult(intersectValue));
+				Vector intersecting_to_light_direction = light.vectSub(intersection_position);
+
+				Ray intersectionRay(intersection_position, intersecting_to_light_direction);
+
+				double shadowIntersection = sphere.intersect(intersectionRay);
+
+				if (shadowIntersection == -1 || shadowIntersection == intersectValue) {
+					pixels[thisPixel].r = 255;
+					pixels[thisPixel].g = 255;
+					pixels[thisPixel].b = 255;
+				}
+				else
+					pixels[thisPixel].r = 128;
+					pixels[thisPixel].g = 128;
+					pixels[thisPixel].b = 128;
 			}
 		}		
 	}

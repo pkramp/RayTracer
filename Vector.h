@@ -31,6 +31,10 @@ public:
 		return Vector(this->x + v.x, this->y + v.y, this->z + v.z);
 	}
 
+	Vector vectSub(Vector v) {
+		return Vector(this->x - v.x, this->y - v.y, this->z - v.z);
+	}
+
 	Vector vectMult(double scalar) {
 		return Vector(this->x*scalar, this->y*scalar, this->z*scalar);
 	}

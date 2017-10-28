@@ -64,14 +64,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BMP\Bitmap.cpp" />
-    <ClCompile Include="BMP\BMPHandler.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BMP\Bitmap.h" />
-    <ClInclude Include="BMP\BMPHandler.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Ray.h" />
+    <ClInclude Include="Sphere.h" />
     <ClInclude Include="Vector.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

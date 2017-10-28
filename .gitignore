@@ -11,3 +11,9 @@
 *.idb
 *.ppm
 *.sln
+*.opendb
+*.vcxproj
+*.iobj
+*.ipdb
+*.filters
+*.vcxproj
