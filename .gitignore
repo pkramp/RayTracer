@@ -1,0 +1,13 @@
+
+.vs/RayTracer/v15/.suo
+*.tlog
+*.log
+*.ilk
+*.pdb
+*.exe
+*.obj
+*.db
+*.ipch
+*.idb
+*.ppm
+*.sln
