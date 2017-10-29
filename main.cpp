@@ -20,11 +20,7 @@ struct RGBType {
 	double b;
 };
 
-double dotProduct(Vector& a, Vector& b) {
-	return (a.x*b.x + a.y*b.y + a.z*b.z);
-}
-
-void scaleRGB(Vector& color) {
+void normalizeRGB(Vector& color) {
 	color.x = (color.x > 255) ? 255 : (color.x < 0) ? 0 : color.x;
 	color.y = (color.y > 255) ? 255 : (color.y < 0) ? 0 : color.y;
 	color.z = (color.z > 255) ? 255 : (color.z < 0) ? 0 : color.z;
@@ -189,10 +185,10 @@ int main(int argc, char** argv) {
 				Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();
 				Vector normal = sphere.getNormalAt(intersection_position).normalize();
 
-				double angle = dotProduct(intersection_to_light_direction, normal);			// angle between light ray to the object and the normal of the object
+				double angle = intersection_to_light_direction.dotProduct(normal);			// angle between light ray to the object and the normal of the object
 				pixel_color = color_white.vectMult(angle).vectMult(lightIntensity);						
 
-				scaleRGB(pixel_color);			// normalizes rgb values
+				normalizeRGB(pixel_color);			// normalizes rgb values
 
 				pixels[thisPixel].r = pixel_color.x;
 				pixels[thisPixel].g = pixel_color.y;

@@ -47,6 +47,10 @@ public:
 		return Vector((this->y*b.z) - (this->z*b.y), (this->z*b.x) - (this->x*b.z), (this->x*b.y) - (this->y*b.x));
 	}
 
+	double dotProduct(Vector& b) {
+		return (this->x*b.x + this->y*b.y + this->z*b.z);
+	}
+
 	Vector normalize() const {
 		double magnitude = this->magnitude();
 		return Vector(x / magnitude, y / magnitude, z / magnitude);
