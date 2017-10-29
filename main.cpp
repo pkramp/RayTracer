@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <time.h>
 
 #include "Vector.h"
 #include "Ray.h"
@@ -23,7 +24,7 @@ double dotProduct(Vector& a, Vector& b) {
 	return (a.x*b.x + a.y*b.y + a.z*b.z);
 }
 
-void clamp255(Vector& color) {
+void scaleRGB(Vector& color) {
 	color.x = (color.x > 255) ? 255 : (color.x < 0) ? 0 : color.x;
 	color.y = (color.y > 255) ? 255 : (color.y < 0) ? 0 : color.y;
 	color.z = (color.z > 255) ? 255 : (color.z < 0) ? 0 : color.z;
@@ -94,39 +95,55 @@ void savebmp(const char *filename, int w, int h, int dpi, RGBType *data) {
 }
 
 int main(int argc, char** argv) {
+	cout << "rendering ..." << endl;
+
+	clock_t t1, t2;
+	t1 = clock();
+
+	// images properties
 	int imageWidth = 640;
 	int imageHeight = 480;
 	int dpi = 72;
 	int numOfPixels = imageHeight * imageWidth;
 	double aspectratio = (double)imageWidth / (double)imageHeight;
-	RGBType *pixels = new RGBType[numOfPixels];
-	double lightIntensity = 0.8;
 	
+	// global coordinates
 	Vector Origin(0, 0, 0);
 	Vector X(1, 0, 0);
 	Vector Y(0, 1, 0);
 	Vector Z(0, 0, 1);
 
+	// model the camera
 	Vector campos(0, 0, 5);
 	Vector look_at(Origin);
 	Vector diff_btw(campos.x - look_at.x, campos.y - look_at.y, campos.z - look_at.z);
-
 	Vector camdir = diff_btw.negative().normalize();
 	Vector camright = Y.crossProduct(camdir).normalize();
 	Vector camdown = camright.crossProduct(camdir);
-	Camera scene_cam(campos, camdir, camright, camdown);
-	double xamnt, yamnt;
+	Camera camera(campos, camdir, camright, camdown);
 
+	// model a sphere
 	Sphere sphere(Vector(0, 0, 0), 1);
 	vector<Object*> objects;
 	objects.push_back(dynamic_cast<Object*>(&sphere));
 
+	// model colors
 	Vector color_white(255, 255, 255);
-	Vector pixel_color;
-
+	Vector color_black(0, 0, 0);
+	Vector color_red(255, 0, 0);
+	Vector color_green(0, 255, 0);
+	Vector color_blue(0, 0, 255);
+	
+	// model light source
 	Light light(Vector(0, 5, 0));
 	vector<Source*> lights;
 	lights.push_back(dynamic_cast<Source*>(&light));
+
+	// needed global variables
+	double perspectiveX, perspectiveY;	
+	RGBType *pixels = new RGBType[numOfPixels];
+	Vector pixel_color;
+	double lightIntensity = 0.8;
 
 	for (int x = 0; x < imageWidth; x++) {
 		for (int y = 0; y < imageHeight; y++) {
@@ -135,22 +152,22 @@ int main(int argc, char** argv) {
 			// create camera ray
 			if (imageWidth > imageHeight) {
 				// the image is wider than it is tall
-				xamnt = ((x + 0.5) / imageWidth)*aspectratio - (((imageWidth - imageHeight) / (double)imageHeight) / 2);
-				yamnt = ((imageHeight - y) + 0.5) / imageHeight;
+				perspectiveX = ((x + 0.5) / imageWidth)*aspectratio - (((imageWidth - imageHeight) / (double)imageHeight) / 2);
+				perspectiveY = ((imageHeight - y) + 0.5) / imageHeight;
 			}
 			else if (imageHeight > imageWidth) {
 				// the imager is taller than it is wide
-				xamnt = (x + 0.5) / imageWidth;
-				yamnt = (((imageHeight - y) + 0.5) / imageHeight) / aspectratio - (((imageHeight - imageWidth) / (double)imageWidth) / 2);
+				perspectiveX = (x + 0.5) / imageWidth;
+				perspectiveY = (((imageHeight - y) + 0.5) / imageHeight) / aspectratio - (((imageHeight - imageWidth) / (double)imageWidth) / 2);
 			}
 			else {
 				// the image is square
-				xamnt = (x + 0.5) / imageWidth;
-				yamnt = ((imageHeight - y) + 0.5) / imageHeight;
+				perspectiveX = (x + 0.5) / imageWidth;
+				perspectiveY = ((imageHeight - y) + 0.5) / imageHeight;
 			}
 
-			Vector cam_ray_origin = scene_cam.getCameraPosition();
-			Vector cam_ray_direction = camdir.vectAdd(camright.vectMult(xamnt - 0.5).vectAdd(camdown.vectMult(yamnt - 0.5))).normalize();
+			Vector cam_ray_origin = camera.getCameraPosition();
+			Vector cam_ray_direction = camdir.vectAdd(camright.vectMult(perspectiveX - 0.5).vectAdd(camdown.vectMult(perspectiveY - 0.5))).normalize();
 
 			Ray cameraRay(cam_ray_origin, cam_ray_direction);
 
@@ -175,7 +192,7 @@ int main(int argc, char** argv) {
 				double angle = dotProduct(intersection_to_light_direction, normal);			// angle between light ray to the object and the normal of the object
 				pixel_color = color_white.vectMult(angle).vectMult(lightIntensity);						
 
-				clamp255(pixel_color);			// normalizes the rgb values
+				scaleRGB(pixel_color);			// normalizes rgb values
 
 				pixels[thisPixel].r = pixel_color.x;
 				pixels[thisPixel].g = pixel_color.y;
@@ -205,7 +222,14 @@ int main(int argc, char** argv) {
 			}
 		}		
 	}
+
 	savebmp("scene.bmp", imageWidth, imageHeight, dpi, pixels);
 	
+	t2 = clock();
+	double time = ((double)t2 - (double)t1) / 1000;
+
+	cout << "Image rendered in " << time << " seconds." << endl;
+
+	system("Pause");
 	return 0;
 }
