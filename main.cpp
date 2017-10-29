@@ -7,6 +7,9 @@
 #include "Ray.h"
 #include "Sphere.h"
 #include "Camera.h"
+#include "Light.h"
+#include "Object.h"
+#include "Source.h"
 
 using namespace std;
 
@@ -15,6 +18,16 @@ struct RGBType {
 	double g;
 	double b;
 };
+
+double dotProduct(Vector& a, Vector& b) {
+	return (a.x*b.x + a.y*b.y + a.z*b.z);
+}
+
+void clamp255(Vector& color) {
+	color.x = (color.x > 255) ? 255 : (color.x < 0) ? 0 : color.x;
+	color.y = (color.y > 255) ? 255 : (color.y < 0) ? 0 : color.y;
+	color.z = (color.z > 255) ? 255 : (color.z < 0) ? 0 : color.z;
+}
 
 void savebmp(const char *filename, int w, int h, int dpi, RGBType *data) {
 	FILE *f;
@@ -87,6 +100,7 @@ int main(int argc, char** argv) {
 	int numOfPixels = imageHeight * imageWidth;
 	double aspectratio = (double)imageWidth / (double)imageHeight;
 	RGBType *pixels = new RGBType[numOfPixels];
+	double lightIntensity = 0.8;
 	
 	Vector Origin(0, 0, 0);
 	Vector X(1, 0, 0);
@@ -104,7 +118,15 @@ int main(int argc, char** argv) {
 	double xamnt, yamnt;
 
 	Sphere sphere(Vector(0, 0, 0), 1);
-	Vector light(0, 3, 0);
+	vector<Object*> objects;
+	objects.push_back(dynamic_cast<Object*>(&sphere));
+
+	Vector color_white(255, 255, 255);
+	Vector pixel_color;
+
+	Light light(Vector(0, 5, 0));
+	vector<Source*> lights;
+	lights.push_back(dynamic_cast<Source*>(&light));
 
 	for (int x = 0; x < imageWidth; x++) {
 		for (int y = 0; y < imageHeight; y++) {
@@ -132,7 +154,13 @@ int main(int argc, char** argv) {
 
 			Ray cameraRay(cam_ray_origin, cam_ray_direction);
 
-			double intersectValue = sphere.intersect(cameraRay);
+			vector<double> intersections;
+			double intersectValue;
+
+			for (int i = 0; i < objects.size(); i++) {
+				intersectValue = objects[i]->intersect(cameraRay);
+				intersections.push_back(intersectValue);
+			}
 
 			if(intersectValue == -1) {
 				pixels[thisPixel].r = 0;
@@ -141,11 +169,28 @@ int main(int argc, char** argv) {
 			}
 			else {
 				Vector intersection_position = cam_ray_origin.vectAdd(cam_ray_direction.vectMult(intersectValue));
-				Vector intersecting_to_light_direction = light.vectSub(intersection_position).normalize();
+				Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();
+				Vector normal = sphere.getNormalAt(intersection_position).normalize();
 
-				Ray intersectionRay(intersection_position, intersecting_to_light_direction);
+				double angle = dotProduct(intersection_to_light_direction, normal);			// angle between light ray to the object and the normal of the object
+				pixel_color = color_white.vectMult(angle).vectMult(lightIntensity);						
 
-				double shadowIntersection = sphere.intersect(intersectionRay);
+				clamp255(pixel_color);			// normalizes the rgb values
+
+				pixels[thisPixel].r = pixel_color.x;
+				pixels[thisPixel].g = pixel_color.y;
+				pixels[thisPixel].b = pixel_color.z;
+
+				// old functionality which however does not work properly
+				/*Ray intersectionRay(intersection_position, intersecting_to_light_direction);
+
+				vector<double> shadowIntersections;
+				double shadowIntersection;
+
+				for (int i = 0; i < objects.size(); i++) {
+					shadowIntersection = objects[i]->intersect(intersectionRay);
+					shadowIntersections.push_back(shadowIntersection);
+				}
 
 				if (shadowIntersection == -1 || shadowIntersection == intersectValue) {
 					pixels[thisPixel].r = 255;
@@ -156,7 +201,7 @@ int main(int argc, char** argv) {
 					pixels[thisPixel].r = 128;
 					pixels[thisPixel].g = 128;
 					pixels[thisPixel].b = 128;
-				}
+				}*/
 			}
 		}		
 	}

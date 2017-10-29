@@ -3,8 +3,9 @@
 
 #include "Vector.h"
 #include "Ray.h"
+#include "Object.h"
 
-class Sphere {
+class Sphere : public Object {
 
 public:
 	Vector center;
