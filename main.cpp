@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
 	// needed global variables
 	double perspectiveX, perspectiveY;
 	RGBType *pixels = new RGBType[numOfPixels];
-	Colour pixel_color;
+	Colour ambient_lighting, diffuse_reflection, reflective_reflection, pixel_color;
 	double lightIntensity = 1;
 	double material = 1;
 
@@ -195,9 +195,11 @@ int main(int argc, char** argv) {
 					Vector s = normalL.vectSub(intersection_to_light_direction);												// distance from normal lenght projection to reflection vector
 					Vector reflect = (normalL.vectMult(2)).vectMult(angle).vectSub(intersection_to_light_direction);			// reflection vector	
 
-					pixel_color = objects[i]->colour.ColourScalar(angle).ColourScalar(lightIntensity).ColourScalar(material);						// diffuse reflection
-					pixel_color = pixel_color.ColourAdd(light.colour.ColourScalar(pow(reflect.dotProduct(intersection_to_camera_direction), 5)));	// add reflective reflection
-					pixel_color = pixel_color.ColourAdd(objects[i]->colour.ColourScalar(0.2));														// add ambient lighting
+					ambient_lighting = objects[i]->colour.ColourScalar(0.2);																	// ambient lighting
+					diffuse_reflection = objects[i]->colour.ColourScalar(angle).ColourScalar(lightIntensity).ColourScalar(material);			// diffuse reflection
+					reflective_reflection = light.colour.ColourScalar(pow(reflect.dotProduct(intersection_to_camera_direction), 8));			// reflective reflection		
+
+					pixel_color = ambient_lighting.ColourAdd(diffuse_reflection).ColourAdd(reflective_reflection);								// addition of reflections and lightings
 
 					normalizeRGB(pixel_color);			// normalizes rgb values
 
