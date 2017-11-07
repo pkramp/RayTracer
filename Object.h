@@ -3,12 +3,17 @@
 
 #include "Ray.h"
 #include "Vector.h"
+#include "Colour.h"
 
 
 class Object {
 public:
+	Colour colour;
 
 	Object() {};
+	Object(Colour col) {
+		this->colour = col;
+	};
 
 
 	virtual Vector getNormalAt(Vector intersection_position) {

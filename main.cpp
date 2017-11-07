@@ -11,6 +11,7 @@
 #include "Light.h"
 #include "Object.h"
 #include "Source.h"
+#include "Colour.h"
 
 using namespace std;
 
@@ -20,10 +21,10 @@ struct RGBType {
 	double b;
 };
 
-void normalizeRGB(Vector& color) {
-	color.x = (color.x > 255) ? 255 : (color.x < 0) ? 0 : color.x;
-	color.y = (color.y > 255) ? 255 : (color.y < 0) ? 0 : color.y;
-	color.z = (color.z > 255) ? 255 : (color.z < 0) ? 0 : color.z;
+void normalizeRGB(Colour& color) {
+	color.red = (color.red > 255) ? 255 : (color.red < 0) ? 0 : color.red;
+	color.green = (color.green > 255) ? 255 : (color.green < 0) ? 0 : color.green;
+	color.blue = (color.blue > 255) ? 255 : (color.blue < 0) ? 0 : color.blue;
 }
 
 void savebmp(const char *filename, int w, int h, int dpi, RGBType *data) {
@@ -37,8 +38,8 @@ void savebmp(const char *filename, int w, int h, int dpi, RGBType *data) {
 
 	int ppm = dpi*m;
 
-	unsigned char bmpfileheader[14] = { 'B','M', 0,0,0,0, 0,0,0,0, 54,0,0,0 };
-	unsigned char bmpinfoheader[40] = { 40,0,0,0, 0,0,0,0, 0,0,0,0, 1,0,24,0 };
+	unsigned char bmpfileheader[14] = { 'B', 'M', 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0 };
+	unsigned char bmpinfoheader[40] = { 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 24, 0 };
 
 	bmpfileheader[2] = (unsigned char)(filesize);
 	bmpfileheader[3] = (unsigned char)(filesize >> 8);
@@ -82,7 +83,7 @@ void savebmp(const char *filename, int w, int h, int dpi, RGBType *data) {
 		double green = (data[i].g);
 		double blue = (data[i].b);
 
-		unsigned char color[3] = { (int)floor(blue),(int)floor(green),(int)floor(red) };
+		unsigned char color[3] = { (int)floor(blue), (int)floor(green), (int)floor(red) };
 
 		fwrite(color, 1, 3, f);
 	}
@@ -102,7 +103,7 @@ int main(int argc, char** argv) {
 	int dpi = 72;
 	int numOfPixels = imageHeight * imageWidth;
 	double aspectratio = (double)imageWidth / (double)imageHeight;
-	
+
 	// global coordinates
 	Vector Origin(0, 0, 0);
 	Vector X(1, 0, 0);
@@ -110,7 +111,7 @@ int main(int argc, char** argv) {
 	Vector Z(0, 0, 1);
 
 	// model the camera
-	Vector campos(0, 0, 5);
+	Vector campos(0, 0, 6);
 	Vector look_at(Origin);
 	Vector diff_btw(campos.x - look_at.x, campos.y - look_at.y, campos.z - look_at.z);
 	Vector camdir = diff_btw.negative().normalize();
@@ -118,28 +119,35 @@ int main(int argc, char** argv) {
 	Vector camdown = camright.crossProduct(camdir);
 	Camera camera(campos, camdir, camright, camdown);
 
-	// model a sphere
-	Sphere sphere(Vector(0, 0, 0), 1);
-	vector<Object*> objects;
-	objects.push_back(dynamic_cast<Object*>(&sphere));
-
 	// model colors
-	Vector color_white(255, 255, 255);
-	Vector color_black(0, 0, 0);
-	Vector color_red(255, 0, 0);
-	Vector color_green(0, 255, 0);
-	Vector color_blue(0, 0, 255);
+	Colour color_white(255, 255, 255, 0);
+	Colour color_black(0, 0, 0, 0);
+	Colour color_red(255, 0, 0, 0);
+	Colour color_green(0, 255, 0, 0);
+	Colour color_blue(0, 0, 255, 0);
+
+	vector<Object*> objects;
+
+	// model objects
+	Sphere sphere(Vector(0, 0, 0), 1, color_green);
+	Sphere sphere2(Vector(-2, 0, 0), 0.5, color_red);
+	Sphere sphere3(Vector(2, -0.5, 0), 0.75, color_blue);
 	
-	// model light source
-	Light light(Vector(0, 5, 0));
+	objects.push_back(&sphere);
+	objects.push_back(&sphere2);
+	objects.push_back(&sphere3);
+
+	// model light sources
+	Light light(Vector(0, 3, 5), color_white);
 	vector<Source*> lights;
-	lights.push_back(dynamic_cast<Source*>(&light));
+	lights.push_back(&light);
 
 	// needed global variables
-	double perspectiveX, perspectiveY;	
+	double perspectiveX, perspectiveY;
 	RGBType *pixels = new RGBType[numOfPixels];
-	Vector pixel_color;
-	double lightIntensity = 0.8;
+	Colour pixel_color;
+	double lightIntensity = 1;
+	double material = 1;
 
 	for (int x = 0; x < imageWidth; x++) {
 		for (int y = 0; y < imageHeight; y++) {
@@ -172,55 +180,35 @@ int main(int argc, char** argv) {
 
 			for (int i = 0; i < objects.size(); i++) {
 				intersectValue = objects[i]->intersect(cameraRay);
-				intersections.push_back(intersectValue);
-			}
+				if (intersectValue == -1) {
+					continue;
+				}
+				else {
+					Vector intersection_position = cam_ray_origin.vectAdd(cam_ray_direction.vectMult(intersectValue));					// position of ray-sphere intersection
+					Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
+					Vector intersection_to_camera_direction = camera.getCameraPosition().vectSub(intersection_position).normalize();	// 
+					Vector normal = objects[i]->getNormalAt(intersection_position).normalize();
+					Vector normalL = normal.vectMult(normal.dotProduct(intersection_to_light_direction));
+					double angle = intersection_to_light_direction.dotProduct(normal);					// angle between light ray to the object and the normal of the object
+					Vector s = normalL.vectSub(intersection_to_light_direction);
+					Vector reflect = (normalL.vectMult(2)).vectMult(angle).vectSub(intersection_to_light_direction);
+	
+					pixel_color = objects[i]->colour.ColourScalar(angle).ColourScalar(lightIntensity).ColourScalar(material);
+					pixel_color = pixel_color.ColourScalar(reflect.dotProduct(intersection_to_camera_direction));
 
-			if(intersectValue == -1) {
-				pixels[thisPixel].r = 0;
-				pixels[thisPixel].g = 0;
-				pixels[thisPixel].b = 0;
-			}
-			else {
-				Vector intersection_position = cam_ray_origin.vectAdd(cam_ray_direction.vectMult(intersectValue));
-				Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();
-				Vector normal = sphere.getNormalAt(intersection_position).normalize();
+					normalizeRGB(pixel_color);			// normalizes rgb values
 
-				double angle = intersection_to_light_direction.dotProduct(normal);			// angle between light ray to the object and the normal of the object
-				pixel_color = color_white.vectMult(angle).vectMult(lightIntensity);						
-
-				normalizeRGB(pixel_color);			// normalizes rgb values
-
-				pixels[thisPixel].r = pixel_color.x;
-				pixels[thisPixel].g = pixel_color.y;
-				pixels[thisPixel].b = pixel_color.z;
-
-				// old functionality which however does not work properly
-				/*Ray intersectionRay(intersection_position, intersecting_to_light_direction);
-
-				vector<double> shadowIntersections;
-				double shadowIntersection;
-
-				for (int i = 0; i < objects.size(); i++) {
-					shadowIntersection = objects[i]->intersect(intersectionRay);
-					shadowIntersections.push_back(shadowIntersection);
+					pixels[thisPixel].r = pixel_color.red;
+					pixels[thisPixel].g = pixel_color.green;
+					pixels[thisPixel].b = pixel_color.blue;
 				}
 
-				if (shadowIntersection == -1 || shadowIntersection == intersectValue) {
-					pixels[thisPixel].r = 255;
-					pixels[thisPixel].g = 255;
-					pixels[thisPixel].b = 255;
-				}
-				else if (shadowIntersection != -1 && shadowIntersection != intersectValue) {
-					pixels[thisPixel].r = 128;
-					pixels[thisPixel].g = 128;
-					pixels[thisPixel].b = 128;
-				}*/
 			}
-		}		
+		}
 	}
 
 	savebmp("scene.bmp", imageWidth, imageHeight, dpi, pixels);
-	
+
 	t2 = clock();
 	double time = ((double)t2 - (double)t1) / 1000;
 
