@@ -132,13 +132,13 @@ int main(int argc, char** argv) {
 	Sphere sphere(Vector(0, 0, 0), 1, color_green);
 	Sphere sphere2(Vector(-2, 0, 0), 0.5, color_red);
 	Sphere sphere3(Vector(2, -0.5, 0), 0.75, color_blue);
-	
+
 	objects.push_back(&sphere);
 	objects.push_back(&sphere2);
 	objects.push_back(&sphere3);
 
 	// model light sources
-	Light light(Vector(0, 3, 5), color_white);
+	Light light(Vector(0, 3, 3), color_white);
 	vector<Source*> lights;
 	lights.push_back(&light);
 
@@ -152,6 +152,7 @@ int main(int argc, char** argv) {
 	for (int x = 0; x < imageWidth; x++) {
 		for (int y = 0; y < imageHeight; y++) {
 			int thisPixel = y * imageWidth + x;
+			pixel_color = color_black;
 
 			// create camera ray
 			if (imageWidth > imageHeight) {
@@ -175,26 +176,28 @@ int main(int argc, char** argv) {
 
 			Ray cameraRay(cam_ray_origin, cam_ray_direction);
 
-			vector<double> intersections;
 			double intersectValue;
 
-			for (int i = 0; i < objects.size(); i++) {
+			for (unsigned int i = 0; i < objects.size(); i++) {
 				intersectValue = objects[i]->intersect(cameraRay);
 				if (intersectValue == -1) {
+					// ray does not intersect the sphere
 					continue;
 				}
 				else {
+					// ray intersects the sphere
 					Vector intersection_position = cam_ray_origin.vectAdd(cam_ray_direction.vectMult(intersectValue));					// position of ray-sphere intersection
 					Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
-					Vector intersection_to_camera_direction = camera.getCameraPosition().vectSub(intersection_position).normalize();	// 
-					Vector normal = objects[i]->getNormalAt(intersection_position).normalize();
-					Vector normalL = normal.vectMult(normal.dotProduct(intersection_to_light_direction));
-					double angle = intersection_to_light_direction.dotProduct(normal);					// angle between light ray to the object and the normal of the object
-					Vector s = normalL.vectSub(intersection_to_light_direction);
-					Vector reflect = (normalL.vectMult(2)).vectMult(angle).vectSub(intersection_to_light_direction);
-	
-					pixel_color = objects[i]->colour.ColourScalar(angle).ColourScalar(lightIntensity).ColourScalar(material);
-					pixel_color = pixel_color.ColourScalar(reflect.dotProduct(intersection_to_camera_direction));
+					Vector intersection_to_camera_direction = camera.getCameraPosition().vectSub(intersection_position).normalize();	// vector from intersection to camera position
+					Vector normal = objects[i]->getNormalAt(intersection_position).normalize();											// normal at point of intersection
+					Vector normalL = normal.vectMult(normal.dotProduct(intersection_to_light_direction));								// vector of projection of light ray onto normal
+					double angle = intersection_to_light_direction.dotProduct(normal);											// angle between light ray to the object and the normal of the object
+					Vector s = normalL.vectSub(intersection_to_light_direction);												// distance from normal lenght projection to reflection vector
+					Vector reflect = (normalL.vectMult(2)).vectMult(angle).vectSub(intersection_to_light_direction);			// reflection vector	
+
+					pixel_color = objects[i]->colour.ColourScalar(angle).ColourScalar(lightIntensity).ColourScalar(material);						// diffuse reflection
+					pixel_color = pixel_color.ColourAdd(light.colour.ColourScalar(pow(reflect.dotProduct(intersection_to_camera_direction), 5)));	// add reflective reflection
+					pixel_color = pixel_color.ColourAdd(objects[i]->colour.ColourScalar(0.2));														// add ambient lighting
 
 					normalizeRGB(pixel_color);			// normalizes rgb values
 
@@ -202,7 +205,6 @@ int main(int argc, char** argv) {
 					pixels[thisPixel].g = pixel_color.green;
 					pixels[thisPixel].b = pixel_color.blue;
 				}
-
 			}
 		}
 	}
