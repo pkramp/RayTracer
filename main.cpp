@@ -195,8 +195,9 @@ int main(int argc, char** argv) {
 					Vector s = normalL.vectSub(intersection_to_light_direction);												// distance from normal lenght projection to reflection vector
 					Vector reflect = (normalL.vectMult(2)).vectMult(angle).vectSub(intersection_to_light_direction);			// reflection vector	
 
-					ambient_lighting = objects[i]->colour.ColourScalar(0.2);																	// ambient lighting
+					ambient_lighting = objects[i]->colour.ColourScalar(0.1);																	// ambient lighting
 					diffuse_reflection = objects[i]->colour.ColourScalar(angle).ColourScalar(lightIntensity).ColourScalar(material);			// diffuse reflection
+					normalizeRGB(diffuse_reflection);
 					reflective_reflection = light.colour.ColourScalar(pow(reflect.dotProduct(intersection_to_camera_direction), 8));			// reflective reflection		
 
 					pixel_color = ambient_lighting.ColourAdd(diffuse_reflection).ColourAdd(reflective_reflection);								// addition of reflections and lightings
