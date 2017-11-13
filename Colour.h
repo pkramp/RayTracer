@@ -7,9 +7,9 @@ public:
 	double red, green, blue, special;
 
 	Colour() {
-		red = 0.5;
-		green = 0.5;
-		blue = 0.5;
+		red = 0.0;
+		green = 0.0;
+		blue = 0.0;
 		special = 0.0;
 	}
 
@@ -32,7 +32,7 @@ public:
 
 
 	double brightness() {
-		return(red + green + blue) / 3;
+		return ((red + green + blue) / 3);
 	}
 
 	Colour ColourScalar(double scalar) {
@@ -49,6 +49,13 @@ public:
 
 	Colour ColourAverage(Colour col) {
 		return Colour((red + col.getColourRed()) / 2, (green + col.getColourGreen()) / 2, (blue + col.getColourBlue()) / 2, special);
+	}
+
+
+	void normalizeRGB() {
+		red = (red > 255) ? 255 : (red < 0) ? 0 : red;
+		green = (green > 255) ? 255 : (green < 0) ? 0 : green;
+		blue = (blue > 255) ? 255 : (blue < 0) ? 0 : blue;
 	}
 };
 

@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "Vector.h"
+#include "BMP.h"
 #include "Ray.h"
 #include "Sphere.h"
 #include "Camera.h"
@@ -14,87 +15,27 @@
 #include "Colour.h"
 
 using namespace std;
-
-struct RGBType {
-	double r;
-	double g;
-	double b;
-};
-
-void normalizeRGB(Colour& color) {
-	color.red = (color.red > 255) ? 255 : (color.red < 0) ? 0 : color.red;
-	color.green = (color.green > 255) ? 255 : (color.green < 0) ? 0 : color.green;
-	color.blue = (color.blue > 255) ? 255 : (color.blue < 0) ? 0 : color.blue;
-}
-
-void savebmp(const char *filename, int w, int h, int dpi, RGBType *data) {
-	FILE *f;
-	int k = w*h;
-	int s = 4 * k;
-	int filesize = 54 + s;
-
-	double factor = 39.375;
-	int m = static_cast<int>(factor);
-
-	int ppm = dpi*m;
-
-	unsigned char bmpfileheader[14] = { 'B', 'M', 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0 };
-	unsigned char bmpinfoheader[40] = { 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 24, 0 };
-
-	bmpfileheader[2] = (unsigned char)(filesize);
-	bmpfileheader[3] = (unsigned char)(filesize >> 8);
-	bmpfileheader[4] = (unsigned char)(filesize >> 16);
-	bmpfileheader[5] = (unsigned char)(filesize >> 24);
-
-	bmpinfoheader[4] = (unsigned char)(w);
-	bmpinfoheader[5] = (unsigned char)(w >> 8);
-	bmpinfoheader[6] = (unsigned char)(w >> 16);
-	bmpinfoheader[7] = (unsigned char)(w >> 24);
-
-	bmpinfoheader[8] = (unsigned char)(h);
-	bmpinfoheader[9] = (unsigned char)(h >> 8);
-	bmpinfoheader[10] = (unsigned char)(h >> 16);
-	bmpinfoheader[11] = (unsigned char)(h >> 24);
-
-	bmpinfoheader[21] = (unsigned char)(s);
-	bmpinfoheader[22] = (unsigned char)(s >> 8);
-	bmpinfoheader[23] = (unsigned char)(s >> 16);
-	bmpinfoheader[24] = (unsigned char)(s >> 24);
-
-	bmpinfoheader[25] = (unsigned char)(ppm);
-	bmpinfoheader[26] = (unsigned char)(ppm >> 8);
-	bmpinfoheader[27] = (unsigned char)(ppm >> 16);
-	bmpinfoheader[28] = (unsigned char)(ppm >> 24);
-
-	bmpinfoheader[29] = (unsigned char)(ppm);
-	bmpinfoheader[30] = (unsigned char)(ppm >> 8);
-	bmpinfoheader[31] = (unsigned char)(ppm >> 16);
-	bmpinfoheader[32] = (unsigned char)(ppm >> 24);
-
-	fopen_s(&f, filename, "wb");
-
-	fwrite(bmpfileheader, 1, 14, f);
-	fwrite(bmpinfoheader, 1, 40, f);
-
-	for (int i = 0; i < k; i++) {
-		RGBType rgb = data[i];
-
-		double red = (data[i].r);
-		double green = (data[i].g);
-		double blue = (data[i].b);
-
-		unsigned char color[3] = { (int)floor(blue), (int)floor(green), (int)floor(red) };
-
-		fwrite(color, 1, 3, f);
+bool inShadows(Vector intersection_position, Vector intersection_to_light_direction, vector <Object*> objects, int num) {
+	bool shadowed = false;
+	for (Object* obj : objects)
+	{
+		if (obj == objects[num]) {
+			continue;
+		}
+		else {
+			Ray shadow(intersection_position, intersection_to_light_direction);
+			if (obj->intersect(shadow) > -1) {//Schattenfühler hits other Object
+				shadowed = true;
+			}
+		}
 	}
-
-	fclose(f);
+	return shadowed;
 }
 
 int main(int argc, char** argv) {
 	cout << "rendering ..." << endl;
 
-	clock_t t1, t2;
+	clock_t t1;
 	t1 = clock();
 
 	// images properties
@@ -125,20 +66,21 @@ int main(int argc, char** argv) {
 	Colour color_red(255, 0, 0, 0);
 	Colour color_green(0, 255, 0, 0);
 	Colour color_blue(0, 0, 255, 0);
+	Colour colour_yellow(0, 255, 255, 0);
 
 	vector<Object*> objects;
-
 	// model objects
-	Sphere sphere(Vector(0, 0, 0), 1, color_green);
-	Sphere sphere2(Vector(-2, 0, 0), 0.5, color_red);
-	Sphere sphere3(Vector(2, -0.5, 0), 0.75, color_blue);
+	Sphere sphere(Vector(2, -1, 0), 0.3, color_blue);
+	Sphere sphere2(Vector(0, 0, 0), 0.5, color_green);
+	Sphere sphere3(Vector(-2, 1, 0), 1, color_red);
 
 	objects.push_back(&sphere);
 	objects.push_back(&sphere2);
 	objects.push_back(&sphere3);
 
+
 	// model light sources
-	Light light(Vector(0, 3, 3), color_white);
+	Light light(Vector(8, -3, -1 ), color_white);
 	vector<Source*> lights;
 	lights.push_back(&light);
 
@@ -188,21 +130,35 @@ int main(int argc, char** argv) {
 					// ray intersects the sphere
 					Vector intersection_position = cam_ray_origin.vectAdd(cam_ray_direction.vectMult(intersectValue));					// position of ray-sphere intersection
 					Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
+
 					Vector intersection_to_camera_direction = camera.getCameraPosition().vectSub(intersection_position).normalize();	// vector from intersection to camera position
 					Vector normal = objects[i]->getNormalAt(intersection_position).normalize();											// normal at point of intersection
-					Vector normalL = normal.vectMult(normal.dotProduct(intersection_to_light_direction));								// vector of projection of light ray onto normal
-					double angle = intersection_to_light_direction.dotProduct(normal);											// angle between light ray to the object and the normal of the object
-					Vector s = normalL.vectSub(intersection_to_light_direction);												// distance from normal lenght projection to reflection vector
-					Vector reflect = (normalL.vectMult(2)).vectMult(angle).vectSub(intersection_to_light_direction);			// reflection vector	
-
+					//Vector normalL = normal.vectMult(normal.dotProduct(intersection_to_light_direction)).normalize();								// vector of projection of light ray onto normal
+					double angle = normal.dotProduct(intersection_to_light_direction);
+					//double angle = intersection_to_light_direction.dotProduct(normal);											// angle between light ray to the object and the normal of the object
+					//Vector s = normalL.vectSub(intersection_to_light_direction);												// distance from normal lenght projection to reflection vector
+					
+					Vector reflect = (normal.vectMult(2)).vectMult(angle).vectSub(intersection_to_light_direction);// .normalize();			// reflection vector	
+					//Vector reflect = normal.vectMult(angle).vectMult(2).vectSub(intersection_to_light_direction);// .normalize();
 					ambient_lighting = objects[i]->colour.ColourScalar(0.1);																	// ambient lighting
-					diffuse_reflection = objects[i]->colour.ColourScalar(angle).ColourScalar(lightIntensity).ColourScalar(material);			// diffuse reflection
-					normalizeRGB(diffuse_reflection);
-					reflective_reflection = light.colour.ColourScalar(pow(reflect.dotProduct(intersection_to_camera_direction), 8));			// reflective reflection		
-
-					pixel_color = ambient_lighting.ColourAdd(diffuse_reflection).ColourAdd(reflective_reflection);								// addition of reflections and lightings
-
-					normalizeRGB(pixel_color);			// normalizes rgb values
+					if (!inShadows(intersection_position, intersection_to_light_direction, objects, i)) {
+						diffuse_reflection = objects[i]->colour.ColourScalar(angle).ColourScalar(lightIntensity).ColourScalar(material);			// diffuse reflection
+						diffuse_reflection.normalizeRGB();
+						//if(objects[i]->intersect(intersection_to_light_direction))
+						//if(diffuse_reflection.blue > ambient_lighting.blue || diffuse_reflection.red > ambient_lighting.red || diffuse_reflection.green > ambient_lighting.green)
+						if(diffuse_reflection.brightness() > ambient_lighting.brightness())
+							reflective_reflection = light.colour.ColourScalar(pow(reflect.dotProduct(intersection_to_camera_direction), 10));			// reflective reflection		
+							
+						//reflective_reflection = light.colour.ColourScalar(pow(reflect.dotProduct(intersection_to_camera_direction), 100));
+						reflective_reflection.normalizeRGB();
+						pixel_color = ambient_lighting.ColourAdd(diffuse_reflection).ColourAdd(reflective_reflection);								// addition of reflections and lightings
+					}
+					else {
+						pixel_color = ambient_lighting;
+					}
+						/*if (pixel_color.red > 200)
+							cout << "hier";*/
+					pixel_color.normalizeRGB();
 
 					pixels[thisPixel].r = pixel_color.red;
 					pixels[thisPixel].g = pixel_color.green;
@@ -212,13 +168,10 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	savebmp("scene.bmp", imageWidth, imageHeight, dpi, pixels);
+	//cout << "Image rendered in " << (clock() - t1) / 1000 << " seconds." << endl;
+	BMP::savebmp("scene.bmp", imageWidth, imageHeight, dpi, pixels);
 
-	t2 = clock();
-	double time = ((double)t2 - (double)t1) / 1000;
 
-	cout << "Image rendered in " << time << " seconds." << endl;
-
-	system("Pause");
 	return 0;
 }
+
