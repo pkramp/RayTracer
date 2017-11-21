@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 	Vector Z(0, 0, 1);
 
 	// model the camera
-	Vector campos(0, 0, 6);
+	Vector campos(0, 2, 10);
 	Vector look_at(Origin);
 	Vector diff_btw(campos.x - look_at.x, campos.y - look_at.y, campos.z - look_at.z);
 	Vector camdir = diff_btw.negative().normalize();
@@ -74,10 +74,17 @@ int main(int argc, char** argv) {
 	Sphere sphere(Vector(2, -1, 0), 0.3, color_blue);
 	Sphere sphere2(Vector(0, 0, 0), 0.5, color_green);
 	Sphere sphere3(Vector(-2, 1, 0), 1, color_red);
-	//Triangle triangle1(Vector(12, 12, -10), Vector(-12, 12, -10), Vector(-12, -12, -10), colour_yellow);
-	//Triangle ground1(Vector(8, -2, 6), Vector(-8, -2, 6), Vector(16, -2, -40), colour_yellow);
+	//Triangle triangle1(Vector(12, 12, -10), Vector(-12, 12, -10), Vector(-12, -12, -10), colour_cyan);
+	//Triangle triangle2(Vector(-12, 12, -10), Vector(-12, 12, -10), Vector(-12, -12, -10), color_red);
+	Triangle ground1(Vector(-8, -4, 8), Vector(8, -4, 8), Vector(8, -4, -8), color_red);
+	Triangle ground2(Vector(8, -4, -8), Vector(-8, -4, -8),  Vector(-8, -4, 8),  color_red);
+	Triangle wallBack1(Vector(8, 8, -8), Vector(-8, -4, -8), Vector(-8, 8, -8), color_red);
+	Triangle wallBack2(Vector(8, 8, -8), Vector(-8, -4, -8), Vector(8, -4, -8), color_red);
 	
-	//objects.push_back(&triangle1);
+	objects.push_back(&ground1);
+	objects.push_back(&ground2);
+	objects.push_back(&wallBack1);
+	objects.push_back(&wallBack2);
 	//objects.push_back(&ground1);
 	//objects.push_back(&floor);
 	objects.push_back(&sphere);
@@ -85,7 +92,7 @@ int main(int argc, char** argv) {
 	objects.push_back(&sphere3);
 
 	// model light sources
-	Light light(Vector(0, 5, 2), color_white);
+	Light light(Vector(0, 10, 0), color_white);
 	vector<Source*> lights;
 	lights.push_back(&light);
 
