@@ -15,8 +15,7 @@ public:
 		this->colour = col;
 	};
 
-
-	virtual Vector getNormalAt(Vector intersection_position) {
+	virtual Vector getNormalAt(Vector intersection_position, Vector intersection_to_light_direction) {
 		return Vector(0, 0, 0);
 	}
 

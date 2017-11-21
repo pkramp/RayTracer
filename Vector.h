@@ -59,6 +59,7 @@ public:
 	Vector negative() const {
 		return Vector(-x, -y, -z);
 	}
+
 };
 
 #endif

@@ -56,6 +56,14 @@ public:
 			return -1;
 	}
 
+
+	Vector getNormalAt(Vector intersection_position, Vector intersection_to_light_direction) {
+		Vector normal = vertex1.crossProduct(vertex2).normalize(); // this is the triangle's normal
+		if (normal.dotProduct(intersection_to_light_direction) < 0)
+			return normal.negative();
+		return normal;
+	}
+
 	static bool RayIntersectsTriangle(Vector rayOrigin,
 		Vector rayVector,
 		Triangle* inTriangle,

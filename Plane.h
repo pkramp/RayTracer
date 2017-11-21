@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PLANE_H
+#define PLANE_H
 
 #include "Vector.h"
 #include "Ray.h"
@@ -16,20 +17,23 @@ public:
 		this->normal = normal.normalize();
 		this->colour = col;
 }
-	double intersect(Ray ray) {
+	double intersect(Ray ray, Vector intersection_position) {
 		// assuming vectors are all normalized
-		float denom = normal.dotProduct( ray.direction.normalize());
+		float denom = normal.dotProduct(ray.direction.normalize());
 		if (denom > 1e-6) {
 			Vector p0l0 = point.vectSub(ray.origin);
 			double t = p0l0.dotProduct(normal) / denom;
-			return t;
+			if (t >= 0)
+				return t;
 		}
 
 		return -1;
 	}
 
-	Vector getNormalAt(Vector point) {
+	Vector getNormalAt(Vector point, Vector irrelevant) {
 		return normal;
 	}
 
 };
+
+#endif

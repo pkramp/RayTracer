@@ -22,7 +22,7 @@ public:
 		colour.special = col.special;
 	}
 
-	Vector getNormalAt(Vector point) {
+	Vector getNormalAt(Vector point, Vector irrelevant) {
 		// normal always points away from the center of a sphere
 		Vector normal_Vect = point.vectAdd(center.negative()).normalize();
 		return normal_Vect;
