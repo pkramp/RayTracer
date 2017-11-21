@@ -10,6 +10,7 @@
 #include "Sphere.h"
 #include "Camera.h"
 #include "Light.h"
+#include "Triangle.h"
 #include "Object.h"
 #include "Source.h"
 #include "Colour.h"
@@ -24,7 +25,7 @@ bool inShadows(Vector intersection_position, Vector intersection_to_light_direct
 		}
 		else {
 			Ray shadow(intersection_position, intersection_to_light_direction);
-			if (obj->intersect(shadow) > -1) {//Schattenfühler hits other Object
+			if (obj->intersect(shadow, intersection_position) > -1) {//Schattenfühler hits other Object
 				shadowed = true;
 			}
 		}
@@ -33,7 +34,7 @@ bool inShadows(Vector intersection_position, Vector intersection_to_light_direct
 }
 
 int main(int argc, char** argv) {
-	cout << "rendering ..." << endl;
+	std::cout << "rendering ..." << std::endl;
 
 	clock_t t1;
 	t1 = clock();
@@ -78,6 +79,10 @@ int main(int argc, char** argv) {
 	objects.push_back(&sphere2);
 	objects.push_back(&sphere3);
 
+	vector <Triangle*> triangles;
+	Triangle triangle1(Vector(0,0,0), Vector(1, 1, 0), Vector(10, 0, 0), color_green);
+	triangles.push_back(&triangle1);
+	objects.push_back(&triangle1);
 
 	// model light sources
 	Light light(Vector(8, -3, -1 ), color_white);
@@ -90,6 +95,8 @@ int main(int argc, char** argv) {
 	Colour ambient_lighting, diffuse_reflection, reflective_reflection, pixel_color;
 	double lightIntensity = 1;
 	double material = 1;
+	int tcounter = 0;
+	int tcounter2 = 0;
 
 	for (int x = 0; x < imageWidth; x++) {
 		for (int y = 0; y < imageHeight; y++) {
@@ -119,16 +126,24 @@ int main(int argc, char** argv) {
 			Ray cameraRay(cam_ray_origin, cam_ray_direction);
 
 			double intersectValue;
+			Vector intersection_position;
+			Vector intersectionwithTriangle;
+			if (Triangle::RayIntersectsTriangle(cameraRay.origin, cameraRay.direction, &triangle1, intersectionwithTriangle)) {
+				//cout << "triangle intersected at" << intersectionwithTriangle.x << endl;
+				tcounter++;
+			}
 
+			if (triangle1.intersect(cameraRay, intersectionwithTriangle)==1)
+				tcounter2++;
 			for (unsigned int i = 0; i < objects.size(); i++) {
-				intersectValue = objects[i]->intersect(cameraRay);
+				intersectValue = objects[i]->intersect(cameraRay, intersection_position);
 				if (intersectValue == -1) {
 					// ray does not intersect the sphere
 					continue;
 				}
 				else {
 					// ray intersects the sphere
-					Vector intersection_position = cam_ray_origin.vectAdd(cam_ray_direction.vectMult(intersectValue));					// position of ray-sphere intersection
+//					Vector intersection_position = cam_ray_origin.vectAdd(cam_ray_direction.vectMult(intersectValue));					// position of ray-sphere intersection
 					Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
 
 					Vector intersection_to_camera_direction = camera.getCameraPosition().vectSub(intersection_position).normalize();	// vector from intersection to camera position
@@ -170,6 +185,8 @@ int main(int argc, char** argv) {
 
 	//cout << "Image rendered in " << (clock() - t1) / 1000 << " seconds." << endl;
 	BMP::savebmp("scene.bmp", imageWidth, imageHeight, dpi, pixels);
+	std::cout << tcounter << endl;
+	std::cout << tcounter2 << endl;
 
 
 	return 0;

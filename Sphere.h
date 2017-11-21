@@ -28,7 +28,7 @@ public:
 		return normal_Vect;
 	}
 
-	double intersect(Ray ray) {
+	double intersect(Ray ray, Vector& intersection_position) {
 		Vector ray_origin = ray.origin;
 		double ray_origin_x = ray_origin.x;
 		double ray_origin_y = ray_origin.y;
@@ -60,11 +60,15 @@ public:
 
 			if (root_1 > 0) {
 				// the first root is the smallest positive root
+				intersection_position = ray.origin.vectAdd(ray.direction.vectMult(root_1));					// position of ray-sphere intersection
+
 				return root_1;
 			}
 			else {
 				// the second root is the smallest positive root
-				double root_2 = ((sqrt(discriminant) - b) / 2) - 0.000001;
+				double root_2 = ((sqrt(discriminant) - b) / 2) - 0.000001; 
+				intersection_position = ray.origin.vectAdd(ray.direction.vectMult(root_2));					// position of ray-sphere intersection
+
 				return root_2;
 			}
 		}

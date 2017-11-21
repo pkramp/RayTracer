@@ -20,7 +20,7 @@ public:
 		return Vector(0, 0, 0);
 	}
 
-	virtual double intersect(Ray ray) {
+	virtual double intersect(Ray ray, Vector& intersectionPoint) {
 		return 0;
 	}
 
