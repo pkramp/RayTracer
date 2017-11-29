@@ -58,8 +58,10 @@ public:
 
 
 	Vector getNormalAt(Vector intersection_position, Vector intersection_to_light_direction) {
-		Vector normal = vertex1.crossProduct(vertex2).normalize(); // this is the triangle's normal
-		if (normal.dotProduct(intersection_to_light_direction) < 0)
+		Vector e0 = vertex1.vectSub(vertex0);
+		Vector e1 = vertex2.vectSub(vertex0);
+		Vector normal = e0.crossProduct(e1).normalize(); // this is the triangle's normal
+		if (normal.dotProduct(intersection_to_light_direction) <= 0)
 			return normal.negative();
 		return normal;
 	}

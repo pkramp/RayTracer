@@ -17,8 +17,10 @@
 #include "Plane.h"
 
 using namespace std;
-bool inShadows(Vector intersection_position, Vector intersection_to_light_direction, vector <Object*> objects, int num) {
+
+bool inShadows(Vector intersection_position, Vector intersection_to_light_direction, vector <Object*> objects, int num, vector <Source*> lights) {
 	bool shadowed = false;
+	Vector actualIntersection = intersection_position;
 	for (Object* obj : objects)
 	{
 		if (obj == objects[num]) {
@@ -26,8 +28,10 @@ bool inShadows(Vector intersection_position, Vector intersection_to_light_direct
 		}
 		else {
 			Ray shadow(intersection_position, intersection_to_light_direction);
-			if (obj->intersect(shadow, intersection_position) > -1) {//Schattenfühler hits other Object
-				shadowed = true;
+			if (obj->intersect(shadow, intersection_position) > -1) {	//Schattenfühler hits other Object
+				if (lights[0]->getLightPosition().vectSub(actualIntersection).magnitude() > intersection_position.vectSub(actualIntersection).magnitude()) {
+					shadowed = true;
+				}
 			}
 		}
 	}
@@ -51,7 +55,7 @@ int main(int argc, char** argv) {
 	Vector Z(0, 0, 1);
 
 	// model the camera
-	Vector campos(0, 2, 10);
+	Vector campos(0, -5, 22);
 	Vector look_at(Origin);
 	Vector diff_btw(campos.x - look_at.x, campos.y - look_at.y, campos.z - look_at.z);
 	Vector camdir = diff_btw.negative().normalize();
@@ -74,25 +78,33 @@ int main(int argc, char** argv) {
 	Sphere sphere(Vector(2, -1, 0), 0.3, color_blue);
 	Sphere sphere2(Vector(0, 0, 0), 0.5, color_green);
 	Sphere sphere3(Vector(-2, 1, 0), 1, color_red);
-	//Triangle triangle1(Vector(12, 12, -10), Vector(-12, 12, -10), Vector(-12, -12, -10), colour_cyan);
-	//Triangle triangle2(Vector(-12, 12, -10), Vector(-12, 12, -10), Vector(-12, -12, -10), color_red);
 	Triangle ground1(Vector(-8, -4, 8), Vector(8, -4, 8), Vector(8, -4, -8), color_red);
 	Triangle ground2(Vector(8, -4, -8), Vector(-8, -4, -8),  Vector(-8, -4, 8),  color_red);
-	Triangle wallBack1(Vector(8, 8, -8), Vector(-8, -4, -8), Vector(-8, 8, -8), color_red);
-	Triangle wallBack2(Vector(8, 8, -8), Vector(-8, -4, -8), Vector(8, -4, -8), color_red);
-	
+	Triangle ceiling1(Vector(-8, 8, 8), Vector(8, 8, 8), Vector(8, 8, -8), color_red);
+	Triangle ceiling2(Vector(8, 8, -8), Vector(-8, 8, -8), Vector(-8, 8, 8), color_red);
+	Triangle wallBack1(Vector(-8, -4, -8), Vector(8, 8, -8),  Vector(-8, 8, -8), color_red);
+	Triangle wallBack2(Vector(8, 8, -8),  Vector(8, -4, -8), Vector(-8, -4, -8), color_red);
+	Triangle wallLeft1(Vector(8, 8, -8), Vector(8, -4, -8), Vector(8, 8, 8), color_red);
+	Triangle wallLeft2(Vector(8, 8, 8), Vector(8, -4, -8), Vector(8, -4, 8), color_red);
+	Triangle wallRight1(Vector(-8, 8, -8), Vector(-8, -4, -8), Vector(-8, 8, 8), color_red);
+	Triangle wallRight2(Vector(-8, 8, 8), Vector(-8, -4, -8), Vector(-8, -4, 8), color_red);
+	/*
 	objects.push_back(&ground1);
-	objects.push_back(&ground2);
+	objects.push_back(&ground2);*/
+	objects.push_back(&ceiling1);
+	objects.push_back(&ceiling2);/*
 	objects.push_back(&wallBack1);
 	objects.push_back(&wallBack2);
-	//objects.push_back(&ground1);
-	//objects.push_back(&floor);
+	objects.push_back(&wallLeft1);
+	objects.push_back(&wallLeft2);
+	objects.push_back(&wallRight1);
+	objects.push_back(&wallRight2);*//*
 	objects.push_back(&sphere);
 	objects.push_back(&sphere2);
-	objects.push_back(&sphere3);
+	objects.push_back(&sphere3);*/
 
 	// model light sources
-	Light light(Vector(0, 10, 0), color_white);
+	Light light(Vector(0, 5, 0), color_white);
 	vector<Source*> lights;
 	lights.push_back(&light);
 
@@ -150,14 +162,14 @@ int main(int argc, char** argv) {
 					ambient_lighting = objects[i]->colour.ColourScalar(0.1);															// ambient lighting
 					
 					// calculate lighting and reflection
-					Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
+ 					Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
 					Vector intersection_to_camera_direction = camera.getCameraPosition().vectSub(intersection_position).normalize();	// vector from intersection to camera position
-					Vector normal = objects[i]->getNormalAt(intersection_position, intersection_to_light_direction).normalize();											// normal at point of intersection
+					Vector normal = objects[i]->getNormalAt(intersection_position, intersection_to_light_direction).normalize();		// normal at point of intersection
 					double angle = normal.dotProduct(intersection_to_light_direction);													// angle between light ray to the object and the normal of the object								
 					Vector reflect = (normal.vectMult(2)).vectMult(angle).vectSub(intersection_to_light_direction);						// reflection vector	
 
 					// check for shadows
-					if (!inShadows(intersection_position, intersection_to_light_direction, objects, i)) {
+					if (!inShadows(intersection_position, intersection_to_light_direction, objects, i, lights)) {
 						diffuse_reflection = objects[i]->colour.ColourScalar(angle).ColourScalar(lightIntensity).ColourScalar(material);			// diffuse reflection
 						diffuse_reflection.normalizeRGB();
 
