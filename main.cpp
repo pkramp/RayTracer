@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
 	Vector Z(0, 0, 1);
 
 	// model the camera
-	Vector campos(0, -5, 22);
+	Vector campos(0, 4, 15);
 	Vector look_at(Origin);
 	Vector diff_btw(campos.x - look_at.x, campos.y - look_at.y, campos.z - look_at.z);
 	Vector camdir = diff_btw.negative().normalize();
@@ -67,44 +67,44 @@ int main(int argc, char** argv) {
 	Colour color_white(255, 255, 255, 0);
 	Colour color_black(0, 0, 0, 0);
 	Colour color_stonegrey(128, 128, 128, 0);
-	Colour color_red(255, 0, 0, 0);
+	Colour color_winered(160, 0, 32, 0);
 	Colour color_green(0, 255, 0, 0);
-	Colour color_blue(0, 0, 255, 0);
+	Colour color_blue(65, 105, 255, 0);
 	Colour colour_cyan(0, 255, 255, 0);
 
 	vector<Object*> objects;
 	// model objects
-	Plane floor(Vector(0, -5, 0), Vector(0, 1, 0), colour_cyan);
-	Sphere sphere(Vector(2, -1, 0), 0.3, color_blue);
+	//Plane floor(Vector(0, -5, 0), Vector(0, 1, 0), colour_cyan);
+	Sphere sphere(Vector(2, -1, 0), 0.3, color_black);
 	Sphere sphere2(Vector(0, 0, 0), 0.5, color_green);
-	Sphere sphere3(Vector(-2, 1, 0), 1, color_red);
-	Triangle ground1(Vector(-8, -4, 8), Vector(8, -4, 8), Vector(8, -4, -8), color_red);
-	Triangle ground2(Vector(8, -4, -8), Vector(-8, -4, -8),  Vector(-8, -4, 8),  color_red);
-	Triangle ceiling1(Vector(-8, 8, 8), Vector(8, 8, 8), Vector(8, 8, -8), color_red);
-	Triangle ceiling2(Vector(8, 8, -8), Vector(-8, 8, -8), Vector(-8, 8, 8), color_red);
-	Triangle wallBack1(Vector(-8, -4, -8), Vector(8, 8, -8),  Vector(-8, 8, -8), color_red);
-	Triangle wallBack2(Vector(8, 8, -8),  Vector(8, -4, -8), Vector(-8, -4, -8), color_red);
-	Triangle wallLeft1(Vector(8, 8, -8), Vector(8, -4, -8), Vector(8, 8, 8), color_red);
-	Triangle wallLeft2(Vector(8, 8, 8), Vector(8, -4, -8), Vector(8, -4, 8), color_red);
-	Triangle wallRight1(Vector(-8, 8, -8), Vector(-8, -4, -8), Vector(-8, 8, 8), color_red);
-	Triangle wallRight2(Vector(-8, 8, 8), Vector(-8, -4, -8), Vector(-8, -4, 8), color_red);
-	/*
+	Sphere sphere3(Vector(-2, 1, 0), 1, colour_cyan);
+	Triangle ground1(Vector(-8, -4, 8), Vector(8, -4, 8), Vector(8, -4, -8), color_winered);
+	Triangle ground2(Vector(8, -4, -8), Vector(-8, -4, -8),  Vector(-8, -4, 8), color_winered);
+	Triangle ceiling1(Vector(-8, 8, 8), Vector(8, 8, 8), Vector(8, 8, -8), color_blue);
+	Triangle ceiling2(Vector(8, 8, -8), Vector(-8, 8, -8), Vector(-8, 8, 8), color_blue);
+	Triangle wallBack1(Vector(-8, -4, -8), Vector(8, 8, -8),  Vector(-8, 8, -8), color_stonegrey);
+	Triangle wallBack2(Vector(8, 8, -8),  Vector(8, -4, -8), Vector(-8, -4, -8), color_stonegrey);
+	Triangle wallLeft1(Vector(8, 8, -8), Vector(8, -4, -8), Vector(8, 8, 8), color_winered);
+	Triangle wallLeft2(Vector(8, 8, 8), Vector(8, -4, -8), Vector(8, -4, 8), color_winered);
+	Triangle wallRight1(Vector(-8, 8, -8), Vector(-8, -4, -8), Vector(-8, 8, 8), color_blue);
+	Triangle wallRight2(Vector(-8, 8, 8), Vector(-8, -4, -8), Vector(-8, -4, 8), color_blue);
+	
 	objects.push_back(&ground1);
-	objects.push_back(&ground2);*/
-	objects.push_back(&ceiling1);
-	objects.push_back(&ceiling2);/*
+	objects.push_back(&ground2);	
 	objects.push_back(&wallBack1);
 	objects.push_back(&wallBack2);
 	objects.push_back(&wallLeft1);
 	objects.push_back(&wallLeft2);
 	objects.push_back(&wallRight1);
-	objects.push_back(&wallRight2);*//*
+	objects.push_back(&wallRight2);
 	objects.push_back(&sphere);
 	objects.push_back(&sphere2);
-	objects.push_back(&sphere3);*/
+	objects.push_back(&sphere3);
+	objects.push_back(&ceiling1);
+	objects.push_back(&ceiling2);
 
 	// model light sources
-	Light light(Vector(0, 5, 0), color_white);
+	Light light(Vector(0, 6, 0), color_white);
 	vector<Source*> lights;
 	lights.push_back(&light);
 
@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
 	double perspectiveX, perspectiveY;
 	RGBType *pixels = new RGBType[numOfPixels];
 	Colour ambient_lighting, diffuse_reflection, reflective_reflection, pixel_color;
-	double lightIntensity = 1;
+	double lightIntensity = 0.7;
 	double material = 1;
 
 	for (int x = 0; x < imageWidth; x++) {
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
 
 						// make sure angle is within correct range (between 1 and 0)
 						if((angle < 1 && angle > 0)){
-							reflective_reflection = light.colour.ColourScalar(pow(reflect.dotProduct(intersection_to_camera_direction), 15));		// reflective reflection
+							reflective_reflection = light.colour.ColourScalar(pow(reflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
 							reflective_reflection.normalizeRGB();
 						}		
 				
