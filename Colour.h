@@ -4,31 +4,35 @@
 class Colour {
 
 public:
-	double red, green, blue, special;
+	double red, green, blue, special, reflect;
 
 	Colour() {
 		red = 0.0;
 		green = 0.0;
 		blue = 0.0;
 		special = 0.0;
+		reflect = 0.0;
 	}
 
-	Colour(double r, double g, double b, double s) {
+	Colour(double r, double g, double b, double s, double ref) {
 		red = r;
 		green = g;
 		blue = b;
 		special = s;
+		reflect = ref;
 	}
 
 	double getColourRed() { return red; }
 	double getColourGreen() { return green; }
 	double getColourBlue() { return blue; }
 	double getColourSpecial() { return special; }
+	double getColourReflect() { return reflect; }
 
 	double setColourRed(double redValue) { red = redValue; }
 	double setColourGreen(double greenValue) { green = greenValue; }
 	double setColourBlue(double blueValue) { blue = blueValue; }
 	double setColourSpecial(double specialValue) { special = specialValue; }
+	double setColourReflect(double reflectValue) { reflect = reflectValue; }
 
 
 	double brightness() {
@@ -36,19 +40,19 @@ public:
 	}
 
 	Colour ColourScalar(double scalar) {
-		return Colour(red*scalar, green*scalar, blue*scalar, special);
+		return Colour(red*scalar, green*scalar, blue*scalar, special, reflect);
 	}
 
 	Colour ColourAdd(Colour col) {
-		return Colour(red + col.getColourRed(), green + col.getColourGreen(), blue + col.getColourBlue(), special);
+		return Colour(red + col.getColourRed(), green + col.getColourGreen(), blue + col.getColourBlue(), special, reflect);
 	}
 
 	Colour ColourMultiply(Colour col) {
-		return Colour(red*col.getColourRed(), green*col.getColourGreen(), blue*col.getColourBlue(), special);
+		return Colour(red*col.getColourRed(), green*col.getColourGreen(), blue*col.getColourBlue(), special, reflect);
 	}
 
 	Colour ColourAverage(Colour col) {
-		return Colour((red + col.getColourRed()) / 2, (green + col.getColourGreen()) / 2, (blue + col.getColourBlue()) / 2, special);
+		return Colour((red + col.getColourRed()) / 2, (green + col.getColourGreen()) / 2, (blue + col.getColourBlue()) / 2, special, reflect);
 	}
 
 

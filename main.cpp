@@ -21,6 +21,7 @@ using namespace std;
 static const int aadepth = 4;
 
 bool inShadows(Vector intersection_position, Vector intersection_to_light_direction, vector <Object*> objects, int num, vector <Source*> lights) {
+	return false;
 	bool shadowed = false;
 	Vector actualIntersection = intersection_position;
 	for (Object* obj : objects)
@@ -40,11 +41,40 @@ bool inShadows(Vector intersection_position, Vector intersection_to_light_direct
 	return shadowed;
 }
 
+void reflection(double lightAngle, vector<Object*> objects, Vector intersection_position, Vector cameraReflect, Colour &reflective_reflection, Light light, Vector lightReflect, Vector intersection_to_camera_direction, int index){
+	if ((lightAngle < 1 && lightAngle > 0)) {
+		if (objects[index]->colour.getColourReflect() > 0) {
+			Ray reflection_ray(intersection_position, cameraReflect);
+			double tempDistance = INFINITY;
+			bool reflectionFound = false;
+			for (Object* obj : objects){
+				Vector actualIntersection = intersection_position;
+				if (obj->intersect(reflection_ray, actualIntersection) == -1 && !reflectionFound) {
+					reflective_reflection = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
+					reflective_reflection.normalizeRGB();
+				}
+				else if (obj != objects[index]){
+					if (actualIntersection.vectSub(intersection_position).magnitude() < tempDistance && actualIntersection.vectSub(intersection_position).magnitude() > 0.01)
+					{
+						reflectionFound = true;
+						tempDistance = actualIntersection.vectSub(intersection_position).magnitude();
+						reflective_reflection = obj->colour; //.ColourScalar(pow(cameraReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
+						reflective_reflection.normalizeRGB();
+					}
+				}
+			}
+		}
+		else {
+			reflective_reflection = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
+			reflective_reflection.normalizeRGB();
+		}
+	}
+}
+
 int main(int argc, char** argv) {
 	std::cout << "rendering ..." << std::endl;
 
 	clock_t t1, t2;
-	t1 = clock();
 
 	// images properties
 	int imageWidth = 1024;
@@ -69,32 +99,33 @@ int main(int argc, char** argv) {
 	Camera camera(campos, camdir, camright, camdown);
 
 	// model colors
-	Colour color_white(255, 255, 255, 0);
-	Colour color_black(0, 0, 0, 0);
-	Colour color_stonegrey(128, 128, 128, 0);
-	Colour color_winered(160, 0, 32, 0);
-	Colour color_green(0, 255, 0, 0);
-	Colour color_blue(65, 105, 255, 0);
-	Colour colour_cyan(0, 255, 255, 0);
+	Colour color_white(255, 255, 255, 0, 0);
+	Colour color_black(0, 0, 0, 0, 0);
+	Colour color_stonegrey(128, 128, 128, 0, 0);
+	Colour color_winered(160, 0, 32, 0, 0);
+	Colour color_mirror(255, 255, 255, 0, 0.5);
+	Colour color_green(0, 255, 0, 0, 0);
+	Colour color_blue(65, 105, 255, 0, 0);
+	Colour colour_cyan(0, 255, 255, 0, 0.5);
 
 	vector<Object*> objects;
 	// model objects
-	Sphere sphere(Vector(2, -1, 0), 0.3, color_black);
+	Sphere sphere(Vector(2, -1, 0), 0.3, colour_cyan);
 	Sphere sphere2(Vector(0, 0, 0), 0.5, color_green);
 	Sphere sphere3(Vector(-2, 1, 0), 1, colour_cyan);
-	Triangle ground1(Vector(-8, -4, 8), Vector(8, -4, 8), Vector(8, -4, -8), color_winered);
-	Triangle ground2(Vector(8, -4, -8), Vector(-8, -4, -8),  Vector(-8, -4, 8), color_winered);
+	Triangle ground1(Vector(-8, -4, 8), Vector(8, -4, 8), Vector(8, -4, -8), color_mirror);
+	Triangle ground2(Vector(8, -4, -8), Vector(-8, -4, -8), Vector(-8, -4, 8), color_mirror);
 	//Triangle ceiling1(Vector(-8, 8, 8), Vector(8, 8, 8), Vector(8, 8, -8), color_blue);
 	//Triangle ceiling2(Vector(8, 8, -8), Vector(-8, 8, -8), Vector(-8, 8, 8), color_blue);
-	Triangle wallBack1(Vector(-8, -4, -8), Vector(8, 8, -8),  Vector(-8, 8, -8), color_stonegrey);
-	Triangle wallBack2(Vector(8, 8, -8),  Vector(8, -4, -8), Vector(-8, -4, -8), color_stonegrey);
+	Triangle wallBack1(Vector(-8, -4, -8), Vector(8, 8, -8), Vector(-8, 8, -8), color_stonegrey);
+	Triangle wallBack2(Vector(8, 8, -8), Vector(8, -4, -8), Vector(-8, -4, -8), color_stonegrey);
 	Triangle wallLeft1(Vector(8, 8, -8), Vector(8, -4, -8), Vector(8, 8, 8), color_winered);
 	Triangle wallLeft2(Vector(8, 8, 8), Vector(8, -4, -8), Vector(8, -4, 8), color_winered);
 	Triangle wallRight1(Vector(-8, 8, -8), Vector(-8, -4, -8), Vector(-8, 8, 8), color_blue);
 	Triangle wallRight2(Vector(-8, 8, 8), Vector(-8, -4, -8), Vector(-8, -4, 8), color_blue);
-	
+
 	objects.push_back(&ground1);
-	objects.push_back(&ground2);	
+	objects.push_back(&ground2);
 	objects.push_back(&wallBack1);
 	objects.push_back(&wallBack2);
 	objects.push_back(&wallLeft1);
@@ -121,148 +152,174 @@ int main(int argc, char** argv) {
 	double material = 1;
 	double tempRed, tempGreen, tempBlue;
 
-	for (int x = 0; x < imageWidth; x++) {
-		for (int y = 0; y < imageHeight; y++) {
-			thisPixel = y * imageWidth + x;
+	float temp[10];
 
-			double tempRed[aadepth*aadepth];
-			double tempGreen[aadepth*aadepth];
-			double tempBlue[aadepth*aadepth];
+	for (int testing = 0; testing < 1; testing++) {			// loop for testing rendering time
 
-			for (int aax = 0; aax < aadepth; aax++) {
-				for (int aay = 0; aay < aadepth; aay++) {
+		t1 = clock();
 
-					srand(time(0));
+		for (int x = 0; x < imageWidth; x++) {
+			for (int y = 0; y < imageHeight; y++) {
+				thisPixel = y * imageWidth + x;
 
-					aa_index = aay*aadepth + aax;
+				double tempRed[aadepth*aadepth];
+				double tempGreen[aadepth*aadepth];
+				double tempBlue[aadepth*aadepth];
 
-					tempRed[aa_index] = 128;
-					tempGreen[aa_index] = 128;
-					tempBlue[aa_index] = 128;
+				for (int aax = 0; aax < aadepth; aax++) {
+					for (int aay = 0; aay < aadepth; aay++) {
 
-					// create camera ray
-					if (aadepth <= 1) {			// no anti aliasing
-						if (imageWidth > imageHeight) {
-							// the image is wider than it is tall
-							perspectiveX = ((x + 0.5) / imageWidth)*aspectratio - (((imageWidth - imageHeight) / (double)imageHeight) / 2);
-							perspectiveY = ((imageHeight - y) + 0.5) / imageHeight;
-						}
-						else if (imageHeight > imageWidth) {
-							// the imager is taller than it is wide
-							perspectiveX = (x + 0.5) / imageWidth;
-							perspectiveY = (((imageHeight - y) + 0.5) / imageHeight) / aspectratio - (((imageHeight - imageWidth) / (double)imageWidth) / 2);
-						}
-						else {
-							// the image is square
-							perspectiveX = (x + 0.5) / imageWidth;
-							perspectiveY = ((imageHeight - y) + 0.5) / imageHeight;
-						}
-					}
-					else {			// using anti aliasing
-						if (imageWidth > imageHeight) {
-							// the image is wider than it is tall
-							perspectiveX = ((x + (double)aax / ((double)aadepth - 1)) / imageWidth)*aspectratio - (((imageWidth - imageHeight) / (double)imageHeight) / 2);
-							perspectiveY = ((imageHeight - y) + (double)aax / ((double)aadepth - 1)) / imageHeight;
-						}
-						else if (imageHeight > imageWidth) {
-							// the imager is taller than it is wide
-							perspectiveX = (x + (double)aax / ((double)aadepth - 1)) / imageWidth;
-							perspectiveY = (((imageHeight - y) + (double)aax / ((double)aadepth - 1)) / imageHeight) / aspectratio - (((imageHeight - imageWidth) / (double)imageWidth) / 2);
-						}
-						else {
-							// the image is square
-							perspectiveX = (x + (double)aax / ((double)aadepth - 1)) / imageWidth;
-							perspectiveY = ((imageHeight - y) + (double)aax / ((double)aadepth - 1)) / imageHeight;
-						}
-					}
+						srand(time(0));
 
-					Vector cam_ray_origin = camera.getCameraPosition();
-					Vector cam_ray_direction = camdir.vectAdd(camright.vectMult(perspectiveX - 0.5).vectAdd(camdown.vectMult(perspectiveY - 0.5))).normalize();
+						aa_index = aay*aadepth + aax;
 
-					Ray cameraRay(cam_ray_origin, cam_ray_direction);
+						tempRed[aa_index] = 128;
+						tempGreen[aa_index] = 128;
+						tempBlue[aa_index] = 128;
 
-					Vector intersection_position;
-			
-					for (unsigned int i = 0; i < objects.size(); i++) {
-						if (objects[i]->intersect(cameraRay, intersection_position) == -1) {
-							// ray does not intersect the object
-							continue;
-						}
-						else {
-							// ray intersects the object
-
-							// initialize different lighting values
-							diffuse_reflection = Colour(0, 0, 0, 0);
-							reflective_reflection = Colour(0, 0, 0, 0);
-							ambient_lighting = objects[i]->colour.ColourScalar(0.1);															// ambient lighting
-
-							// calculate lighting and reflection
-							Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
-							Vector intersection_to_camera_direction = camera.getCameraPosition().vectSub(intersection_position).normalize();	// vector from intersection to camera position
-							Vector normal = objects[i]->getNormalAt(intersection_position, intersection_to_light_direction).normalize();		// normal at point of intersection
-							double angle = normal.dotProduct(intersection_to_light_direction);													// angle between light ray to the object and the normal of the object								
-							Vector reflect = (normal.vectMult(2)).vectMult(angle).vectSub(intersection_to_light_direction);						// reflection vector	
-
-							// check for shadows
-							if (!inShadows(intersection_position, intersection_to_light_direction, objects, i, lights)) {
-								diffuse_reflection = objects[i]->colour.ColourScalar(angle).ColourScalar(lightIntensity).ColourScalar(material);			// diffuse reflection
-								diffuse_reflection.normalizeRGB();
-
-								// make sure angle is within correct range (between 1 and 0)
-								if ((angle < 1 && angle > 0)) {
-									reflective_reflection = light.colour.ColourScalar(pow(reflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
-									reflective_reflection.normalizeRGB();
-								}
-
-								pixel_color = ambient_lighting.ColourAdd(diffuse_reflection).ColourAdd(reflective_reflection);								// addition of reflections and lightings
+						// create camera ray
+						if (aadepth <= 1) {			// no anti aliasing
+							if (imageWidth > imageHeight) {
+								// the image is wider than it is tall
+								perspectiveX = ((x + 0.5) / imageWidth)*aspectratio - (((imageWidth - imageHeight) / (double)imageHeight) / 2);
+								perspectiveY = ((imageHeight - y) + 0.5) / imageHeight;
+							}
+							else if (imageHeight > imageWidth) {
+								// the imager is taller than it is wide
+								perspectiveX = (x + 0.5) / imageWidth;
+								perspectiveY = (((imageHeight - y) + 0.5) / imageHeight) / aspectratio - (((imageHeight - imageWidth) / (double)imageWidth) / 2);
 							}
 							else {
-								pixel_color = ambient_lighting;
+								// the image is square
+								perspectiveX = (x + 0.5) / imageWidth;
+								perspectiveY = ((imageHeight - y) + 0.5) / imageHeight;
 							}
-
-							pixel_color.normalizeRGB();
-
-							tempRed[aa_index] = pixel_color.red;
-							tempGreen[aa_index] = pixel_color.green;
-							tempBlue[aa_index] = pixel_color.blue;
 						}
-					}
+						else {			// using anti aliasing
+							if (imageWidth > imageHeight) {
+								// the image is wider than it is tall
+								perspectiveX = ((x + (double)aax / ((double)aadepth - 1)) / imageWidth)*aspectratio - (((imageWidth - imageHeight) / (double)imageHeight) / 2);
+								perspectiveY = ((imageHeight - y) + (double)aax / ((double)aadepth - 1)) / imageHeight;
+							}
+							else if (imageHeight > imageWidth) {
+								// the imager is taller than it is wide
+								perspectiveX = (x + (double)aax / ((double)aadepth - 1)) / imageWidth;
+								perspectiveY = (((imageHeight - y) + (double)aax / ((double)aadepth - 1)) / imageHeight) / aspectratio - (((imageHeight - imageWidth) / (double)imageWidth) / 2);
+							}
+							else {
+								// the image is square
+								perspectiveX = (x + (double)aax / ((double)aadepth - 1)) / imageWidth;
+								perspectiveY = ((imageHeight - y) + (double)aax / ((double)aadepth - 1)) / imageHeight;
+							}
+						}
 
-					// average the pixel color
-					double totalRed = 0;
-					double totalGreen = 0;
-					double totalBlue = 0;
+						Vector cam_ray_origin = camera.getCameraPosition();
+						Vector cam_ray_direction = camdir.vectAdd(camright.vectMult(perspectiveX - 0.5).vectAdd(camdown.vectMult(perspectiveY - 0.5))).normalize();
 
-					for (int iRed = 0; iRed < aadepth*aadepth; iRed++) {
-						totalRed = totalRed + tempRed[iRed];
-					}
-					for (int iGreen = 0; iGreen < aadepth*aadepth; iGreen++) {
-						totalGreen = totalGreen + tempGreen[iGreen];
-					}
-					for (int iBlue = 0; iBlue < aadepth*aadepth; iBlue++) {
-						totalBlue = totalBlue + tempBlue[iBlue];
-					}
+						Ray cameraRay(cam_ray_origin, cam_ray_direction);
 
-					double avgRed = totalRed / (aadepth*aadepth);
-					double avgGreen = totalGreen / (aadepth*aadepth);
-					double avgBlue = totalBlue / (aadepth*aadepth);
+						Vector intersection_position;
 
-					pixels[thisPixel].r = avgRed;
-					pixels[thisPixel].g = avgGreen;
-					pixels[thisPixel].b = avgBlue;
+						for (unsigned int i = 0; i < objects.size(); i++) {
+							if (objects[i]->intersect(cameraRay, intersection_position) == -1) {
+								// ray does not intersect the object
+								continue;
+							}
+							else {
+								// ray intersects the object
+
+								// initialize different lighting values
+								diffuse_reflection = Colour(0, 0, 0, 0, 0);
+								reflective_reflection = Colour(0, 0, 0, 0, 0);
+								ambient_lighting = objects[i]->colour.ColourScalar(0.1);															// ambient lighting
+
+								// calculate lighting and reflection
+								Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
+								Vector intersection_to_camera_direction = camera.getCameraPosition().vectSub(intersection_position).normalize();	// vector from intersection to camera position
+								Vector normal = objects[i]->getNormalAt(intersection_position, intersection_to_light_direction).normalize();		// normal at point of intersection
+								double lightAngle = normal.dotProduct(intersection_to_light_direction);												// angle between light ray to the object and the normal of the object	
+								double cameraAngle = normal.dotProduct(intersection_to_camera_direction);
+								Vector lightReflect = (normal.vectMult(2)).vectMult(lightAngle).vectSub(intersection_to_light_direction);			// reflection vector
+								Vector cameraReflect = (normal.vectMult(2)).vectMult(cameraAngle).vectSub(intersection_to_camera_direction);
+
+								// check for shadows
+								if (!inShadows(intersection_position, intersection_to_light_direction, objects, i, lights)) {
+									diffuse_reflection = objects[i]->colour.ColourScalar(lightAngle).ColourScalar(lightIntensity).ColourScalar(material);	// diffuse reflection
+									diffuse_reflection.normalizeRGB();
+									reflection(lightAngle, objects, intersection_position, cameraReflect, reflective_reflection, light, lightReflect, intersection_to_camera_direction, i);// calculates reflective reflection
+									double reflect = objects[i]->colour.reflect;
+									double reflectInvert = 1 - reflect;
+									if (objects[i]->colour.getColourReflect() > 0) {
+										Colour a = ambient_lighting.ColourScalar(reflectInvert);
+										Colour b = diffuse_reflection.ColourScalar(reflectInvert);
+										Colour c = reflective_reflection.ColourScalar(reflect);
+										pixel_color = a.ColourAdd(b).ColourAdd(c);
+									}
+									else{
+										pixel_color = ambient_lighting.ColourAdd(diffuse_reflection).ColourAdd(reflective_reflection);				// addition of reflections and lightings
+									}
+								}
+								else {
+									pixel_color = ambient_lighting;
+								}
+
+								pixel_color.normalizeRGB();
+
+								tempRed[aa_index] = pixel_color.red;
+								tempGreen[aa_index] = pixel_color.green;
+								tempBlue[aa_index] = pixel_color.blue;
+							}
+						}
+
+						// average the pixel color
+						double totalRed = 0;
+						double totalGreen = 0;
+						double totalBlue = 0;
+
+						for (int iRed = 0; iRed < aadepth*aadepth; iRed++) {
+							totalRed = totalRed + tempRed[iRed];
+						}
+						for (int iGreen = 0; iGreen < aadepth*aadepth; iGreen++) {
+							totalGreen = totalGreen + tempGreen[iGreen];
+						}
+						for (int iBlue = 0; iBlue < aadepth*aadepth; iBlue++) {
+							totalBlue = totalBlue + tempBlue[iBlue];
+						}
+
+						double avgRed = totalRed / (aadepth*aadepth);
+						double avgGreen = totalGreen / (aadepth*aadepth);
+						double avgBlue = totalBlue / (aadepth*aadepth);
+
+						pixels[thisPixel].r = avgRed;
+						pixels[thisPixel].g = avgGreen;
+						pixels[thisPixel].b = avgBlue;
+					}
 				}
 			}
 		}
+
+		BMP::savebmp("scene.bmp", imageWidth, imageHeight, dpi, pixels);
+
+		t2 = clock();
+		float diff = ((float)t2 - (float)t1) / 1000;
+
+		temp[testing] = diff;
+
+		cout << "rendered " << imageWidth << " x " << imageHeight << " image in " << diff << " seconds, using AA depth of " << aadepth << endl;
+
 	}
 
-	BMP::savebmp("scene.bmp", imageWidth, imageHeight, dpi, pixels);
+	double average = 0;
 
-	t2 = clock();
-	float diff = ((float)t2 - (float)t1) / 1000;
+	for (int i = 0; i < 10; i++){
+		average += temp[i];
+	}
 
-	cout << "rendered " << imageWidth << " x " << imageHeight << " image in " << diff << " seconds, using AA depth of " << aadepth << endl;
+	average /= 10;
 
-	system("Pause");
+	cout << "average rendering time: " << average << " seconds" << endl;
+
+	//system("Pause");
 
 	return 0;
 }
