@@ -68,7 +68,7 @@ public:
 				// the second root is the smallest positive root
 				double root_2 = ((sqrt(discriminant) - b) / 2) - 0.000001; 
 				intersection_position = ray.origin.vectAdd(ray.direction.vectMult(root_2));					// position of ray-sphere intersection
-
+				return -1;
 				return root_2;
 			}
 		}
