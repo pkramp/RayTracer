@@ -24,12 +24,12 @@ public:
 	double intersect(Ray ray,
 		Vector& outIntersectionPoint)
 	{
-		const float EPSILON = 0.0000001;
+		const double EPSILON = 0.0000001;
 		Vector vertex0 = this->vertex0;
 		Vector vertex1 = this->vertex1;
 		Vector vertex2 = this->vertex2;
 		Vector edge1, edge2, h, s, q;
-		float a, f, u, v;
+		double a, f, u, v;
 		edge1 = vertex1.vectSub(vertex0);
 		edge2 = vertex2.vectSub(vertex0);
 		h = ray.direction.crossProduct(edge2);
@@ -46,7 +46,7 @@ public:
 		if (v < 0.0 || u + v > 1.0)
 			return -1;
 		// At this stage we can compute t to find out where the intersection point is on the line.
-		float t = f * edge2.dotProduct(q);
+		double t = f * edge2.dotProduct(q);
 		if (t > EPSILON) // ray intersection
 		{
 			outIntersectionPoint = ray.origin.vectAdd(ray.direction.vectMult(t));

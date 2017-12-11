@@ -1,8 +1,8 @@
 #pragma once
 struct RGBType {
-	double r;
-	double g;
-	double b;
+	uint32_t r;
+	uint32_t g;
+	uint32_t b;
 };
 
 class BMP{

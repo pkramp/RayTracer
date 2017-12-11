@@ -19,7 +19,7 @@ public:
 }
 	double intersect(Ray ray, Vector intersection_position) {
 		// assuming vectors are all normalized
-		float denom = normal.dotProduct(ray.direction.normalize());
+		double denom = normal.dotProduct(ray.direction.normalize());
 		if (denom > 1e-6) {
 			Vector p0l0 = point.vectSub(ray.origin);
 			double t = p0l0.dotProduct(normal) / denom;
