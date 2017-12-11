@@ -4,7 +4,7 @@
 class Colour {
 
 public:
-	double red, green, blue, special, reflect;
+	double red, green, blue, special, reflect, transparency;
 
 	Colour() {
 		red = 0.0;
@@ -12,14 +12,16 @@ public:
 		blue = 0.0;
 		special = 0.0;
 		reflect = 0.0;
+		transparency = 0.0;
 	}
 
-	Colour(double r, double g, double b, double s, double ref) {
+	Colour(double r, double g, double b, double s, double ref, double transp = 0) {
 		red = r;
 		green = g;
 		blue = b;
 		special = s;
 		reflect = ref;
+		transparency = transp;
 	}
 
 	double getColourRed() { return red; }
@@ -27,6 +29,7 @@ public:
 	double getColourBlue() { return blue; }
 	double getColourSpecial() { return special; }
 	double getColourReflect() { return reflect; }
+	double getColourTransparency() { return transparency; }
 
 	double setColourRed(double redValue) { red = redValue; }
 	double setColourGreen(double greenValue) { green = greenValue; }
