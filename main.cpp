@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <fstream>
 #include <cmath>
 #include <iostream>
@@ -6,6 +8,7 @@
 #include <thread>
 
 #include "Vector.h"
+#include "Vector2.h"
 #include "BMP.h"
 #include "Ray.h"
 #include "Sphere.h"
@@ -16,10 +19,11 @@
 #include "Source.h"
 #include "Colour.h"
 #include "Plane.h"
+#include "ObjectLoader.h"
 
 using namespace std;
 
-static const int aadepth = 4;
+static const int aadepth = 1;
 
 bool inShadows(Vector intersection_position, Vector intersection_to_light_direction, vector <Object*> objects, int num, vector <Source*> lights = vector  <Source*>()) {
 	return false;// TO DO Shadows are  out for now
@@ -142,7 +146,7 @@ Camera createCamera() {
 	Vector Y(0, 1, 0);
 	Vector Z(0, 0, 1);
 	// model the camera
-	Vector campos(0, 8, 15);
+	Vector campos(0, 3, 4.5);
 	Vector look_at(Origin);
 	Vector diff_btw(campos.x - look_at.x, campos.y - look_at.y, campos.z - look_at.z);
 	Vector camdir = diff_btw.negative().normalize();
@@ -290,7 +294,6 @@ void renderPart(Camera camera, vector<Object*> objects, int imageHeight, int ima
 									//if not transparent, calculate regular reflection
 									reflection(lightAngle, objects, intersection_position, cameraReflect, reflective_reflection, light, lightReflect, intersection_to_camera_direction, pos, recursionDepth);// calculates reflective reflection
 								}
-								//calcObject = objects[i];
 								
 								double reflect = calcObject->colour.getColourReflect();
 								if (objectChange)
@@ -350,27 +353,39 @@ int main(int argc, char** argv) {
 
 	clock_t t1, t2;
 
+	ObjectLoader loader;
+	std::vector< Vector > vertices;
+	std::vector< Vector2 > uvs;
+	std::vector< Vector > normals; // Won't be used at the moment.
+	bool res = loader.readFile("bunny.obj", vertices, uvs, normals);
+
 	// images properties
-	int imageWidth = 1024*10;
-	int imageHeight = 864*10;
+	int imageWidth = 1024;
+	int imageHeight = 864;
 	int dpi = 72;
 	int numOfPixels = imageHeight * imageWidth;
 
 	Camera camera = createCamera();
 	// model colors
 	Colour color_white(255, 255, 255, 0, 0, 0);
-	Colour color_stonegrey(128, 128, 128, 0, 0.5, 0);
-	Colour color_winered(160, 0, 32, 0, 0.5, 0);
+	Colour color_stonegrey(128, 128, 128, 0, 0, 0);
+	Colour color_winered(160, 0, 32, 0, 0, 0);
 	Colour color_mirror(255, 255, 255, 0, 1, 0);
 	Colour color_green(34, 139, 34, 0, 0, 0);
-	Colour color_blue(50, 80, 200, 0, 0.5, 0);
+	Colour color_blue(50, 80, 200, 0, 0, 0);
 	Colour colour_cyan(0, 255, 255, 0, 0, 0);
 	Colour mirrorSphere(255, 255, 255, 0, 1, 0);
-	Colour darkPurple(57, 0, 130, 0, 0.7, 0);
+	Colour darkPurple(57, 0, 130, 0, 0, 0);
 	Colour glass(0, 0, 0, 0, 1, 0);
 
 	vector<Object*> objects;
 	// model objects
+
+	for (int i = 0; i < 3000; i+=3) {
+		Object * tr = new Triangle(vertices[i], vertices[i + 1], vertices[i + 2], darkPurple);
+		objects.push_back(tr);
+	}
+
 	Triangle ground1(Vector(-8.1, -3.9, 8.5), Vector(8.1, -3.9, 8.5), Vector(8.1, -3.9, -8.5), color_mirror);
 	Triangle ground2(Vector(8.1, -3.9, -8.5), Vector(-8.1, -3.9, -8.5), Vector(-8.1, -3.9, 8.5), color_mirror);
 	Triangle ceiling1(Vector(-8.1, 7.9, 8.5), Vector(8.1, 7.9, 8.5), Vector(8.1, 7.9, -8.5), darkPurple);
@@ -388,7 +403,7 @@ int main(int argc, char** argv) {
 	Sphere sphere3(Vector(-2, 1, 3), 0.8, color_green);
 	Sphere sphere4(Vector(7, 1, -10), 2, colour_cyan);
 
-	objects.push_back(&sphere);
+	/*objects.push_back(&sphere);
 	objects.push_back(&sphere2);
 	objects.push_back(&ground1);
 	objects.push_back(&ground2);
@@ -403,14 +418,14 @@ int main(int argc, char** argv) {
 	objects.push_back(&ceiling2);
 	objects.push_back(&wallBack1);
 	objects.push_back(&wallBack2);
-	//objects.push_back(&sphere4);
+	//objects.push_back(&sphere4);*/
 
 	// model light sources
 	Light light(Vector(0, 10, 0), color_white);
 	vector<Source*> lights;
 	lights.push_back(&light);
 	t1 = clock();
-	const int numThreads = 12;
+	const int numThreads = 8;
 	std::vector<std::thread> threads;
 	RGBType *pixels = new RGBType[numOfPixels];
 	for (int i = 0; i < numThreads; ++i) {

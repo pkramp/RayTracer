@@ -15,7 +15,7 @@ public:
 		this->z = 0;
 	}
 
-	Vector(Vector& copy) {
+	Vector(const Vector& copy) {
 		this->x = copy.x;
 		this->y = copy.y;
 		this->z = copy.z;
