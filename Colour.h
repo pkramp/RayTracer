@@ -15,7 +15,7 @@ public:
 		transparency = 0.0;
 	}
 
-	Colour(double r, double g, double b, double s, double ref, double transp = 0) {
+	Colour(double r, double g, double b, double s, double ref, double transp) {
 		red = r;
 		green = g;
 		blue = b;
@@ -43,19 +43,19 @@ public:
 	}
 
 	Colour ColourScalar(double scalar) {
-		return Colour(red*scalar, green*scalar, blue*scalar, special, reflect);
+		return Colour(red*scalar, green*scalar, blue*scalar, special, reflect, transparency);
 	}
 
 	Colour ColourAdd(Colour col) {
-		return Colour(red + col.getColourRed(), green + col.getColourGreen(), blue + col.getColourBlue(), special, reflect);
+		return Colour(red + col.getColourRed(), green + col.getColourGreen(), blue + col.getColourBlue(), special, reflect, transparency);
 	}
 
 	Colour ColourMultiply(Colour col) {
-		return Colour(red*col.getColourRed(), green*col.getColourGreen(), blue*col.getColourBlue(), special, reflect);
+		return Colour(red*col.getColourRed(), green*col.getColourGreen(), blue*col.getColourBlue(), special, reflect, transparency);
 	}
 
 	Colour ColourAverage(Colour col) {
-		return Colour((red + col.getColourRed()) / 2, (green + col.getColourGreen()) / 2, (blue + col.getColourBlue()) / 2, special, reflect);
+		return Colour((red + col.getColourRed()) / 2, (green + col.getColourGreen()) / 2, (blue + col.getColourBlue()) / 2, special, reflect, transparency);
 	}
 
 
