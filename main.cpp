@@ -6,6 +6,7 @@
 #include <vector>
 #include <time.h>
 #include <thread>
+#include <algorithm>
 
 #include "Vector.h"
 #include "Vector2.h"
@@ -28,113 +29,8 @@ using namespace std;
 
 static const int aadepth = 1;
 
-
-
-bool inShadows(Vector intersection_position, Vector intersection_to_light_direction, vector <Object*> objects, int num, vector <Source*> lights = vector  <Source*>()) {
-	return false; //TO DO Shadows are  out for now
-	bool shadowed = false;
-	Vector actualIntersection = intersection_position;
-	if (objects[num]->colour.reflect > 0)
-		return false;
-	for (Object* obj : objects)
-	{
-		if (obj == objects[num]) {
-			continue;
-		}
-		else {
-			Ray shadow(intersection_position, intersection_to_light_direction);
-			if (obj->intersect(shadow, intersection_position) > -1) {	//Schattenfühler hits other Object
-				if (lights[0]->getLightPosition().vectSub(actualIntersection).magnitude() > intersection_position.vectSub(actualIntersection).magnitude()) {
-					shadowed = true;
-				}
-			}
-		}
-	}
-	return shadowed;
-}
-
-void reflection(double lightAngle, vector<Object*> objects, Vector intersection_position, Vector cameraReflect, Colour &reflective_reflection, Light light, Vector lightReflect, Vector intersection_to_camera_direction, int index, int &recursionDepth, Tree &T) {
-	if ((lightAngle <= 1 && lightAngle >= 0) || objects[index]->colour.getColourReflect() > 0) {
-		if (objects[index]->colour.getColourReflect() > 0) {
-			Ray reflection_ray(intersection_position, cameraReflect);
-			double tempDistance = INFINITY;
-			bool reflectionFound = false;
-			if (TREE) {
-				objects = T.findrelevantObjects(reflection_ray, objects);
-			}
-			for (Object* reflectedObject : objects) {
-				Vector actualIntersection = intersection_position;
-				if (reflectedObject->intersect(reflection_ray, actualIntersection) == -1 && !reflectionFound) {
-					//if ( lightAngle < 1 && lightAngle > 0) {
-					reflective_reflection = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
-					reflective_reflection.normalizeRGB();
-					//}
-				}
-				//Object has reflective property
-				else if (reflectedObject != objects[index]) {
-					//test if this is the closest object that is then actually reflected
-					if (actualIntersection.vectSub(intersection_position).magnitude() < tempDistance && actualIntersection.vectSub(intersection_position).magnitude() > 0.000000001)
-					{
-						double lightIntensity = 1;
-						reflectionFound = true;
-						tempDistance = actualIntersection.vectSub(intersection_position).magnitude();
-
-						// initialize different lighting values
-						Colour diffuse_reflection = Colour(0, 0, 0, 0, 0, 0);
-						reflective_reflection = Colour(0, 0, 0, 0, 0, 0);
-						Vector cameraPos(intersection_position);
-						// calculate lighting and reflection
-						Vector intersection_to_light_direction = light.getLightPosition().vectSub(actualIntersection).normalize();		// vector from intersection position to light source	
-						Vector intersection_to_camera_direction = cameraPos.vectSub(actualIntersection).normalize();	// vector from intersection to camera position
-						Vector normal = reflectedObject->getNormalAt(actualIntersection, intersection_to_light_direction).normalize();		// normal at point of intersection
-						double lightAngle = normal.dotProduct(intersection_to_light_direction);												// angle between light ray to the object and the normal of the object	
-						double cameraAngle = normal.dotProduct(intersection_to_camera_direction);
-						Vector lightReflect = (normal.vectMult(2)).vectMult(lightAngle).vectSub(intersection_to_light_direction);			// reflection vector
-						Vector cameraReflect = (normal.vectMult(2)).vectMult(cameraAngle).vectSub(intersection_to_camera_direction);
-
-						Colour c = Colour(0, 0, 0, 0, 0, 0);
-						Colour b = Colour(0, 0, 0, 0, 0, 0);
-						diffuse_reflection = reflectedObject->colour.ColourScalar(lightAngle).ColourScalar(lightIntensity).ColourScalar(1 - reflectedObject->colour.getColourReflect());	// diffuse reflection
-						diffuse_reflection.normalizeRGB();
-						b = diffuse_reflection;
-						recursionDepth++;
-						if (recursionDepth < 20) {
-							//reflection on reflection recursion
-							ptrdiff_t pos = find(objects.begin(), objects.end(), reflectedObject) - objects.begin();
-							reflection(lightAngle, objects, actualIntersection, cameraReflect, c, light, lightReflect, intersection_to_camera_direction, pos, recursionDepth, T);// calculates reflective reflection
-							c = c.ColourScalar(reflectedObject->colour.getColourReflect());
-						}
-						else {
-							c = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
-						}
-						reflective_reflection = b.ColourAdd(c);// reflective reflection
-						reflective_reflection.normalizeRGB();
-					}
-				}
-			}
-		}
-		else {
-			reflective_reflection = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
-			reflective_reflection.normalizeRGB();
-		}
-	}
-}
-
-void refraction(Colour &refractive_reflection, Ray cameraRay, vector<Object*> objects, int index, Vector &intersectionPosition, Object* &hitobject) {
-	for (Object * obj : objects)
-	{
-		if (obj->intersect(cameraRay, intersectionPosition) == -1) {
-			continue;
-		}
-		else {
-			if (obj != objects[index])
-			{
-				hitobject = obj;
-				break;
-				//return intersectionPosition
-			}
-		}
-	}
+float clamp(float n, float lower, float upper) {
+	return std::max(lower, std::min(n, upper));
 }
 
 Camera createCamera(int x, int y, int z) {
@@ -195,6 +91,143 @@ Vector cameraRay(Camera camera, int imageWidth, int imageHeight, int x, int y, i
 
 }
 
+bool inShadows(Vector intersection_position, Vector intersection_to_light_direction, vector <Object*> objects, int num, vector <Source*> lights = vector  <Source*>()) {
+	return false; //TO DO Shadows are  out for now
+	bool shadowed = false;
+	Vector actualIntersection = intersection_position;
+	if (objects[num]->colour.reflect > 0)
+		return false;
+	for (Object* obj : objects)
+	{
+		if (obj == objects[num]) {
+			continue;
+		}
+		else {
+			Ray shadow(intersection_position, intersection_to_light_direction);
+			if (obj->intersect(shadow, intersection_position) > -1) {	//Schattenfühler hits other Object
+				if (lights[0]->getLightPosition().vectSub(actualIntersection).magnitude() > intersection_position.vectSub(actualIntersection).magnitude()) {
+					shadowed = true;
+				}
+			}
+		}
+	}
+	return shadowed;
+}
+
+void diffuse(Colour &diffuse_reflection, Object *&calcObject, double lightAngle, double lightIntensity) {
+	diffuse_reflection = calcObject->colour.ColourScalar(lightAngle).ColourScalar(lightIntensity);
+	diffuse_reflection.normalizeRGB();
+}
+
+void reflection(double lightAngle, vector<Object*> objects, Vector intersection_position, Vector cameraReflect, Colour &reflective_reflection, Light light, Vector lightReflect, Vector intersection_to_camera_direction, int index, int &recursionDepth, Tree &T, double lightIntensity) {
+	if ((lightAngle <= 1 && lightAngle >= 0) || objects[index]->colour.getColourReflect() > 0) {
+		if (objects[index]->colour.getColourReflect() > 0) {
+			Ray reflection_ray(intersection_position, cameraReflect);
+			double tempDistance = INFINITY;
+			bool reflectionFound = false;
+			if (TREE) {
+				objects = T.findrelevantObjects(reflection_ray, objects);
+			}
+			for (Object* reflectedObject : objects) {
+				Vector actualIntersection = intersection_position;
+				if (reflectedObject->intersect(reflection_ray, actualIntersection) == -1 && !reflectionFound) {
+					//if ( lightAngle < 1 && lightAngle > 0) {
+					reflective_reflection = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
+					reflective_reflection.normalizeRGB();
+					//}
+				}
+				//Object has reflective property
+				else if (reflectedObject != objects[index]) {
+					//test if this is the closest object that is then actually reflected
+					if (actualIntersection.vectSub(intersection_position).magnitude() < tempDistance && actualIntersection.vectSub(intersection_position).magnitude() > 0.000000001)
+					{
+						reflectionFound = true;
+						tempDistance = actualIntersection.vectSub(intersection_position).magnitude();
+
+						// initialize different lighting values
+						Colour diffuse_reflection = Colour(0, 0, 0, 0, 0, 0);
+						reflective_reflection = Colour(0, 0, 0, 0, 0, 0);
+						Vector cameraPos(intersection_position);
+						// calculate lighting and reflection
+						Vector intersection_to_light_direction = light.getLightPosition().vectSub(actualIntersection).normalize();		// vector from intersection position to light source	
+						Vector intersection_to_camera_direction = cameraPos.vectSub(actualIntersection).normalize();	// vector from intersection to camera position
+						Vector normal = reflectedObject->getNormalAt(actualIntersection, intersection_to_light_direction).normalize();		// normal at point of intersection
+						double lightAngle = normal.dotProduct(intersection_to_light_direction);												// angle between light ray to the object and the normal of the object	
+						double cameraAngle = normal.dotProduct(intersection_to_camera_direction);
+						Vector lightReflect = (normal.vectMult(2)).vectMult(lightAngle).vectSub(intersection_to_light_direction);			// reflection vector
+						Vector cameraReflect = (normal.vectMult(2)).vectMult(cameraAngle).vectSub(intersection_to_camera_direction);
+
+						Colour c = Colour(0, 0, 0, 0, 0, 0);
+						diffuse(diffuse_reflection, reflectedObject, lightAngle, lightIntensity);
+
+						recursionDepth++;
+						if (recursionDepth < 20) {
+							//reflection on reflection recursion
+							ptrdiff_t pos = find(objects.begin(), objects.end(), reflectedObject) - objects.begin();
+							reflection(lightAngle, objects, actualIntersection, cameraReflect, c, light, lightReflect, intersection_to_camera_direction, pos, recursionDepth, T, lightIntensity);// calculates reflective reflection
+							c = c.ColourScalar(reflectedObject->colour.getColourReflect());
+						}
+						else {
+							c = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
+						}
+						reflective_reflection = diffuse_reflection.ColourAdd(c);// reflective reflection
+						reflective_reflection.normalizeRGB();
+					}
+				}
+			}
+		}
+		else {
+			reflective_reflection = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 50));		// reflective reflection
+			reflective_reflection.normalizeRGB();
+		}
+	}
+}
+
+void refraction(Colour &refractive_reflection, Ray &cameraRay, vector<Object*> objects, int index, Vector &intersectionPosition, Object* &hitobject, const float &ior, Vector &intersection_to_light_direction) {
+	Vector intersectionPosition2 = intersectionPosition;
+	Vector N = objects[index]->getNormalAt(intersectionPosition, intersection_to_light_direction);
+	Vector &I = cameraRay.direction;
+	float cosi = clamp(-1, 1, I.dotProduct(N));// dotProduct(I, N));
+	float etai = 1, etat = ior;
+	Vector n = N;
+	if (cosi < 0) { cosi = -cosi; }
+	else { std::swap(etai, etat); n = N.negative(); }
+	float eta = etai / etat;
+	float k = 1 - eta * eta * (1 - cosi * cosi);
+	Vector my();
+	if (k < 0)
+		intersectionPosition = intersectionPosition2;
+	else {
+		Vector direction = I.vectMult(eta).vectAdd(n.vectMult(eta * cosi - sqrtf(k)));
+		Ray refractedRay(intersectionPosition, direction);
+		for (Object * obj : objects)
+		{
+			if (obj->intersect(refractedRay, intersectionPosition) == -1) {
+				continue;
+			}
+			else {
+				
+				if (obj != objects[index])
+				{
+					hitobject = obj;
+					break;
+					//return intersectionPosition
+				}
+			}
+		}
+	}
+
+}
+
+void fresnel(Object * &calcObject, Vector &intersection_position, Light light, Ray cameraRay, Colour &refractive_reflection, vector<Object*> objects, int i, bool &objectChange, int &pos) {
+	if (calcObject->colour.getColourTransparency() > 0) {
+		//in case of transparent object, refract ray and calculate new intersection
+		Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
+		refraction(refractive_reflection, cameraRay, objects, i, intersection_position, calcObject, 1.3, intersection_to_light_direction);// calculates refractive reflection
+		objectChange = true;//needed further down to calculate correct lighting
+		pos = find(objects.begin(), objects.end(), calcObject) - objects.begin(); // the object position of the object hit by the refracted ray
+	}
+}
 
 void renderPart(Tree &T, Camera camera, vector<Object*> objects, int imageHeight, int imageWidth, int widthFrom, int widthTo, vector<Source*> lights, Light light, RGBType*& pixels) {
 	// needed global variables
@@ -203,10 +236,10 @@ void renderPart(Tree &T, Camera camera, vector<Object*> objects, int imageHeight
 	Colour ambient_lighting, diffuse_reflection, reflective_reflection, refractive_reflection, pixel_color;
 	double lightIntensity = 1;
 	stringstream s;
-	s << widthFrom << " TO " << widthTo << endl;
+	//s << widthFrom << " TO " << widthTo << endl;
 	std::cout << s.str();
 	for (int x = widthFrom; x < widthTo; x++) {
-		std::cout << x << std::endl;
+		//std::cout << x << std::endl;
 		for (int y = 0; y < imageHeight; y++) {
 			thisPixel = y * imageWidth + x;
 
@@ -217,8 +250,6 @@ void renderPart(Tree &T, Camera camera, vector<Object*> objects, int imageHeight
 			for (int aax = 0; aax < aadepth; aax++) {
 				for (int aay = 0; aay < aadepth; aay++) {
 					int recursionDepth = 0;
-
-					srand((uint32_t)time(0));
 
 					aa_index = aay*aadepth + aax;
 					tempRed[aa_index] = 128;
@@ -254,18 +285,12 @@ void renderPart(Tree &T, Camera camera, vector<Object*> objects, int imageHeight
 							// initialize different lighting values
 							diffuse_reflection = Colour(0, 0, 0, 0, 0, 0);
 							reflective_reflection = Colour(0, 0, 0, 0, 0, 0);
-							refractive_reflection = Colour(0, 0, 0, 0, 0, 0);													// ambient lighting
+							refractive_reflection = Colour(0, 0, 0, 0, 0, 0);
 							Vector oldIntersection = intersection_position;
 							bool objectChange = false;
 							//FRESNEL
-							if (calcObject->colour.getColourTransparency() > 0) {
-								//in case of transparent object, refract ray and calculate new intersection
-								refraction(refractive_reflection, cameraRay, objects, i, intersection_position, calcObject);// calculates refractive reflection
-								objectChange = true;//needed further down to calculate correct lighting
-								pos = find(objects.begin(), objects.end(), calcObject) - objects.begin(); // the object position of the object hit by the refracted ray
-							}
+							fresnel(calcObject, intersection_position, light, cameraRay, refractive_reflection, objects, i, objectChange, pos);
 							//FRESNEL stop
-							ambient_lighting = calcObject->colour.ColourScalar(0.0);
 							// calculate lighting and reflection for current object
 							Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
 							Vector intersection_to_camera_direction = camera.getCameraPosition().vectSub(intersection_position).normalize();	// vector from intersection to camera position
@@ -287,35 +312,31 @@ void renderPart(Tree &T, Camera camera, vector<Object*> objects, int imageHeight
 
 
 							// check for shadows
-							if (!inShadows(intersection_position, intersection_to_light_direction, objects, i, lights)) {
-								diffuse_reflection = calcObject->colour.ColourScalar(lightAngle).ColourScalar(lightIntensity);
-								diffuse_reflection.normalizeRGB();
-								if (objectChange) {
-									//in case of transparency, still use reflection of original, transparent object, not of surface which is seen through object
-									reflection(lightAngle2, objects, oldIntersection, cameraReflect2, reflective_reflection, light, lightReflect2, intersection_to_camera_direction2, i, recursionDepth, T);// calculates reflective reflection
-								}
-								else {
-									//if not transparent, calculate regular reflection
-									reflection(lightAngle, objects, intersection_position, cameraReflect, reflective_reflection, light, lightReflect, intersection_to_camera_direction, pos, recursionDepth, T);// calculates reflective reflection
-								}
-
-								double reflect = calcObject->colour.getColourReflect();
-								if (objectChange)
-									reflect = objects[i]->colour.getColourReflect();
-								if (reflect > 0) {
-									Colour a = ambient_lighting.ColourScalar(1 - reflect);
-									Colour b = diffuse_reflection.ColourScalar(1 - reflect);
-									//reflect = objects[i]->colour.getColourReflect();//always only using original objects colour
-									Colour c = reflective_reflection.ColourScalar(reflect);
-									pixel_color = a.ColourAdd(b).ColourAdd(c);
-								}
-								else {
-									pixel_color = ambient_lighting.ColourAdd(diffuse_reflection).ColourAdd(reflective_reflection);// .ColourAdd(refractive_reflection);				// addition of reflections and lightings
-								}
+							//if (!inShadows(intersection_position, intersection_to_light_direction, objects, i, lights)) {
+							diffuse(diffuse_reflection, calcObject, lightAngle, lightIntensity);
+							if (objectChange) {
+								//in case of transparency, still use reflection of original, transparent object, not of surface which is seen through object
+								reflection(lightAngle2, objects, oldIntersection, cameraReflect2, reflective_reflection, light, lightReflect2, intersection_to_camera_direction2, i, recursionDepth, T, lightIntensity);// calculates reflective reflection
 							}
 							else {
-								pixel_color = ambient_lighting;
+								//if not transparent, calculate regular reflection
+								reflection(lightAngle, objects, intersection_position, cameraReflect, reflective_reflection, light, lightReflect, intersection_to_camera_direction, pos, recursionDepth, T, lightIntensity);// calculates reflective reflection
 							}
+
+							double reflect = calcObject->colour.getColourReflect();
+							if (objectChange)
+								reflect = objects[i]->colour.getColourReflect();
+							if (reflect > 0) {
+								Colour a = ambient_lighting.ColourScalar(1 - reflect);
+								Colour b = diffuse_reflection.ColourScalar(1 - reflect);
+								//reflect = objects[i]->colour.getColourReflect();//always only using original objects colour
+								Colour c = reflective_reflection.ColourScalar(reflect);
+								pixel_color = a.ColourAdd(b).ColourAdd(c);
+							}
+							else {
+								pixel_color = ambient_lighting.ColourAdd(diffuse_reflection).ColourAdd(reflective_reflection);// .ColourAdd(refractive_reflection);				// addition of reflections and lightings
+							}
+							//}
 							pixel_color.normalizeRGB();
 							tempRed[aa_index] = pixel_color.red;
 							tempGreen[aa_index] = pixel_color.green;
@@ -415,7 +436,7 @@ int main(int argc, char** argv) {
 	Triangle wallLeft1(Vector(8, 8.1, -8.1), Vector(8, -4.1, -8.1), Vector(8, 8.1, 8.1), color_winered);
 	Triangle wallLeft2(Vector(8, 8.1, 8.1), Vector(8, -4.1, -8.1), Vector(8, -4.1, 8.1), color_winered);
 	Sphere sphere(Vector(3, -2, 1), 0.8, color_winered);
-	Sphere sphere2(Vector(0, 1, 0), 3, glass);
+	Sphere sphere2(Vector(0, 1, 0), 3, mirrorSphere);
 	Sphere sphere3(Vector(0, 6, 0), 0.2, color_green);
 	Sphere sphere4(Vector(7, 1, -10), 2, color_winered);
 
