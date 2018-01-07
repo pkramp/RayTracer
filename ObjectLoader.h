@@ -34,6 +34,7 @@ public:
 				float x,y,z = 0;
 				fscanf(file, "%f %f %f\n", &x, &y, &z);
 				Vector vertex(x, y, z);
+				vertex = vertex.vectMult(3);
 				temp_vertices.push_back(vertex);
 			}
 			else if (strcmp(lineHeader, "vt") == 0) {
@@ -42,8 +43,9 @@ public:
 				temp_uvs.push_back(uv);
 			}
 			else if (strcmp(lineHeader, "vn") == 0) {
-				Vector normal;
-				fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
+				float x, y, z = 0;
+				fscanf(file, "%f %f %f\n", &x, &y, &z);
+				Vector normal(x, y, z);
 				temp_normals.push_back(normal);
 			}
 			else if (strcmp(lineHeader, "f") == 0) {
@@ -73,6 +75,13 @@ public:
 			Vector vertex = temp_vertices[vertexIndex - 1];
 			out_vertices.push_back(vertex);
 		}
+
+		for (unsigned int i = 0; i < normalIndices.size(); i++) {
+			unsigned int normalIndex = normalIndices[i];
+			Vector normal = temp_normals[normalIndex - 1];
+			out_normals.push_back(normal);
+		}
+
 	}
 
 };

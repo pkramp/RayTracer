@@ -12,6 +12,7 @@ public:
 	Vector vertex1;
 	Vector vertex2;
 	Colour colour;
+	Vector normal;
 
 	Triangle(Vector v0, Vector v1, Vector v2, Colour col) : Object(col) {
 		vertex0 = v0;
@@ -56,6 +57,10 @@ public:
 			return -1;
 	}
 
+	void setNormal(Vector normal)
+	{
+		this->normal = normal;
+	}
 
 	Vector getNormalAt(Vector intersection_position, Vector intersection_to_light_direction) {
 		Vector e0 = vertex1.vectSub(vertex0);
@@ -64,6 +69,10 @@ public:
 		if (normal.dotProduct(intersection_to_light_direction) <= 0)
 			return normal.negative();
 		return normal;
+	}
+
+	double getDistance(Vector to) {
+		return to.vectSub(vertex0).magnitude();
 	}
 };
 

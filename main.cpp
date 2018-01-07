@@ -20,15 +20,22 @@
 #include "Colour.h"
 #include "Plane.h"
 #include "ObjectLoader.h"
+#include "Tree.h"
 
+
+bool TREE = false;
 using namespace std;
 
 static const int aadepth = 1;
 
+
+
 bool inShadows(Vector intersection_position, Vector intersection_to_light_direction, vector <Object*> objects, int num, vector <Source*> lights = vector  <Source*>()) {
-	return false;// TO DO Shadows are  out for now
+	return false; //TO DO Shadows are  out for now
 	bool shadowed = false;
 	Vector actualIntersection = intersection_position;
+	if (objects[num]->colour.reflect > 0)
+		return false;
 	for (Object* obj : objects)
 	{
 		if (obj == objects[num]) {
@@ -46,30 +53,29 @@ bool inShadows(Vector intersection_position, Vector intersection_to_light_direct
 	return shadowed;
 }
 
-void reflection(double lightAngle, vector<Object*> objects, Vector intersection_position, Vector cameraReflect, Colour &reflective_reflection, Light light, Vector lightReflect, Vector intersection_to_camera_direction, int index, int &recursionDepth) {
-	if ((lightAngle < 1 && lightAngle > 0) || objects[index]->colour.getColourReflect() > 0) {
+void reflection(double lightAngle, vector<Object*> objects, Vector intersection_position, Vector cameraReflect, Colour &reflective_reflection, Light light, Vector lightReflect, Vector intersection_to_camera_direction, int index, int &recursionDepth, Tree &T) {
+	if ((lightAngle <= 1 && lightAngle >= 0) || objects[index]->colour.getColourReflect() > 0) {
 		if (objects[index]->colour.getColourReflect() > 0) {
 			Ray reflection_ray(intersection_position, cameraReflect);
 			double tempDistance = INFINITY;
 			bool reflectionFound = false;
+			if (TREE) {
+				objects = T.findrelevantObjects(reflection_ray, objects);
+			}
 			for (Object* reflectedObject : objects) {
-				//if (objects[index]->colour.getColourTransparency() > 0)
-				//	cout << "here";
 				Vector actualIntersection = intersection_position;
 				if (reflectedObject->intersect(reflection_ray, actualIntersection) == -1 && !reflectionFound) {
-					if (lightAngle < 1 && lightAngle > 0) {
-						reflective_reflection = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
-						reflective_reflection.normalizeRGB();
-					}
+					//if ( lightAngle < 1 && lightAngle > 0) {
+					reflective_reflection = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
+					reflective_reflection.normalizeRGB();
+					//}
 				}
-				else if (reflectedObject != objects[index]) {//Object has reflective property
+				//Object has reflective property
+				else if (reflectedObject != objects[index]) {
 					//test if this is the closest object that is then actually reflected
-					//if (objects[index]->colour.getColourTransparency() > 0)
-					//	cout << "here";
-					if (actualIntersection.vectSub(intersection_position).magnitude() < tempDistance && actualIntersection.vectSub(intersection_position).magnitude() > 0.01)
+					if (actualIntersection.vectSub(intersection_position).magnitude() < tempDistance && actualIntersection.vectSub(intersection_position).magnitude() > 0.000000001)
 					{
-						double lightIntensity = 0.7;
-
+						double lightIntensity = 1;
 						reflectionFound = true;
 						tempDistance = actualIntersection.vectSub(intersection_position).magnitude();
 
@@ -86,24 +92,16 @@ void reflection(double lightAngle, vector<Object*> objects, Vector intersection_
 						Vector lightReflect = (normal.vectMult(2)).vectMult(lightAngle).vectSub(intersection_to_light_direction);			// reflection vector
 						Vector cameraReflect = (normal.vectMult(2)).vectMult(cameraAngle).vectSub(intersection_to_camera_direction);
 
-						//// check for shadows
-						//if (!inShadows(actualIntersection, intersection_to_light_direction, objects, i)) {
-
-						//	reflection(lightAngle, objects, intersection_position, cameraReflect, reflective_reflection, light, lightReflect, intersection_to_camera_direction, i);// calculates reflective reflection
-						//	double reflect = objects[i]->colour.reflect;
-						//	double reflectInvert = 1 - reflect;
-						//	if (objects[i]->colour.getColourReflect() > 0) {
-						//Colour a = ambient_lighting.ColourScalar(1 - reflectedObject->colour.getColourReflect());
 						Colour c = Colour(0, 0, 0, 0, 0, 0);
 						Colour b = Colour(0, 0, 0, 0, 0, 0);
 						diffuse_reflection = reflectedObject->colour.ColourScalar(lightAngle).ColourScalar(lightIntensity).ColourScalar(1 - reflectedObject->colour.getColourReflect());	// diffuse reflection
 						diffuse_reflection.normalizeRGB();
 						b = diffuse_reflection;
 						recursionDepth++;
-						if (recursionDepth < 30) {
+						if (recursionDepth < 20) {
 							//reflection on reflection recursion
 							ptrdiff_t pos = find(objects.begin(), objects.end(), reflectedObject) - objects.begin();
-							reflection(lightAngle, objects, actualIntersection, cameraReflect, c, light, lightReflect, intersection_to_camera_direction, pos, recursionDepth);// calculates reflective reflection
+							reflection(lightAngle, objects, actualIntersection, cameraReflect, c, light, lightReflect, intersection_to_camera_direction, pos, recursionDepth, T);// calculates reflective reflection
 							c = c.ColourScalar(reflectedObject->colour.getColourReflect());
 						}
 						else {
@@ -114,7 +112,6 @@ void reflection(double lightAngle, vector<Object*> objects, Vector intersection_
 					}
 				}
 			}
-
 		}
 		else {
 			reflective_reflection = light.colour.ColourScalar(pow(lightReflect.dotProduct(intersection_to_camera_direction), 100));		// reflective reflection
@@ -140,13 +137,13 @@ void refraction(Colour &refractive_reflection, Ray cameraRay, vector<Object*> ob
 	}
 }
 
-Camera createCamera() {
+Camera createCamera(int x, int y, int z) {
 	Vector Origin(0, 0, 0);
 	Vector X(1, 0, 0);
 	Vector Y(0, 1, 0);
 	Vector Z(0, 0, 1);
 	// model the camera
-	Vector campos(0, 3, 4.5);
+	Vector campos(x, y, z);
 	Vector look_at(Origin);
 	Vector diff_btw(campos.x - look_at.x, campos.y - look_at.y, campos.z - look_at.z);
 	Vector camdir = diff_btw.negative().normalize();
@@ -198,16 +195,18 @@ Vector cameraRay(Camera camera, int imageWidth, int imageHeight, int x, int y, i
 
 }
 
-void renderPart(Camera camera, vector<Object*> objects, int imageHeight, int imageWidth, int widthFrom, int widthTo, vector<Source*> lights, Light light, RGBType*& pixels) {
+
+void renderPart(Tree &T, Camera camera, vector<Object*> objects, int imageHeight, int imageWidth, int widthFrom, int widthTo, vector<Source*> lights, Light light, RGBType*& pixels) {
 	// needed global variables
+	vector<Object*> objectBackup = objects;
 	int thisPixel, aa_index;
 	Colour ambient_lighting, diffuse_reflection, reflective_reflection, refractive_reflection, pixel_color;
-	double lightIntensity = 0.7;
+	double lightIntensity = 1;
 	stringstream s;
 	s << widthFrom << " TO " << widthTo << endl;
 	std::cout << s.str();
 	for (int x = widthFrom; x < widthTo; x++) {
-		//std::cout << x << std::endl;
+		std::cout << x << std::endl;
 		for (int y = 0; y < imageHeight; y++) {
 			thisPixel = y * imageWidth + x;
 
@@ -232,9 +231,11 @@ void renderPart(Camera camera, vector<Object*> objects, int imageHeight, int ima
 					Ray cameraRay(cam_ray_origin, cam_ray_direction);
 
 					Vector intersection_position;
-
 					double tempDistance = INFINITY;
-
+					if (TREE) {
+						vector<Object*>thisItObjects = T.findrelevantObjects(cameraRay, objectBackup);
+						objects = thisItObjects;
+					}
 					for (unsigned int i = 0; i < objects.size(); i++) {
 						Object *calcObject = objects[i];
 						ptrdiff_t pos = i;
@@ -256,15 +257,16 @@ void renderPart(Camera camera, vector<Object*> objects, int imageHeight, int ima
 							refractive_reflection = Colour(0, 0, 0, 0, 0, 0);													// ambient lighting
 							Vector oldIntersection = intersection_position;
 							bool objectChange = false;
-
+							//FRESNEL
 							if (calcObject->colour.getColourTransparency() > 0) {
 								//in case of transparent object, refract ray and calculate new intersection
 								refraction(refractive_reflection, cameraRay, objects, i, intersection_position, calcObject);// calculates refractive reflection
-								objectChange = true;
-								pos = find(objects.begin(), objects.end(), calcObject) - objects.begin();
+								objectChange = true;//needed further down to calculate correct lighting
+								pos = find(objects.begin(), objects.end(), calcObject) - objects.begin(); // the object position of the object hit by the refracted ray
 							}
+							//FRESNEL stop
 							ambient_lighting = calcObject->colour.ColourScalar(0.0);
-							// calculate lighting and reflection
+							// calculate lighting and reflection for current object
 							Vector intersection_to_light_direction = light.getLightPosition().vectSub(intersection_position).normalize();		// vector from intersection position to light source	
 							Vector intersection_to_camera_direction = camera.getCameraPosition().vectSub(intersection_position).normalize();	// vector from intersection to camera position
 							Vector normal = calcObject->getNormalAt(intersection_position, intersection_to_light_direction).normalize();		// normal at point of intersection
@@ -273,6 +275,8 @@ void renderPart(Camera camera, vector<Object*> objects, int imageHeight, int ima
 							Vector lightReflect = (normal.vectMult(2)).vectMult(lightAngle).vectSub(intersection_to_light_direction);			// reflection vector
 							Vector cameraReflect = (normal.vectMult(2)).vectMult(cameraAngle).vectSub(intersection_to_camera_direction);
 
+
+							//old object(in case of transparency)
 							Vector intersection_to_light_direction2 = light.getLightPosition().vectSub(oldIntersection).normalize();			// vector from intersection position to light source	
 							Vector intersection_to_camera_direction2 = camera.getCameraPosition().vectSub(oldIntersection).normalize();			// vector from intersection to camera position
 							Vector normal2 = objects[i]->getNormalAt(oldIntersection, intersection_to_light_direction2).normalize();			// normal at point of intersection
@@ -283,27 +287,27 @@ void renderPart(Camera camera, vector<Object*> objects, int imageHeight, int ima
 
 
 							// check for shadows
-							if (true/*!inShadows(intersection_position, intersection_to_light_direction, objects, i, lights)*/) {
-								diffuse_reflection = calcObject->colour.ColourScalar(lightAngle).ColourScalar(lightIntensity);	// diffuse reflection
+							if (!inShadows(intersection_position, intersection_to_light_direction, objects, i, lights)) {
+								diffuse_reflection = calcObject->colour.ColourScalar(lightAngle).ColourScalar(lightIntensity);
 								diffuse_reflection.normalizeRGB();
 								if (objectChange) {
 									//in case of transparency, still use reflection of original, transparent object, not of surface which is seen through object
-									reflection(lightAngle2, objects, oldIntersection, cameraReflect2, reflective_reflection, light, lightReflect2, intersection_to_camera_direction2, i, recursionDepth);// calculates reflective reflection
+									reflection(lightAngle2, objects, oldIntersection, cameraReflect2, reflective_reflection, light, lightReflect2, intersection_to_camera_direction2, i, recursionDepth, T);// calculates reflective reflection
 								}
 								else {
 									//if not transparent, calculate regular reflection
-									reflection(lightAngle, objects, intersection_position, cameraReflect, reflective_reflection, light, lightReflect, intersection_to_camera_direction, pos, recursionDepth);// calculates reflective reflection
+									reflection(lightAngle, objects, intersection_position, cameraReflect, reflective_reflection, light, lightReflect, intersection_to_camera_direction, pos, recursionDepth, T);// calculates reflective reflection
 								}
-								
+
 								double reflect = calcObject->colour.getColourReflect();
 								if (objectChange)
 									reflect = objects[i]->colour.getColourReflect();
 								if (reflect > 0) {
 									Colour a = ambient_lighting.ColourScalar(1 - reflect);
 									Colour b = diffuse_reflection.ColourScalar(1 - reflect);
-																  //reflect = objects[i]->colour.getColourReflect();//always only using original objects colour
+									//reflect = objects[i]->colour.getColourReflect();//always only using original objects colour
 									Colour c = reflective_reflection.ColourScalar(reflect);
-									pixel_color = a.ColourAdd(b).ColourAdd(c);// .ColourAdd(refractive_reflection);
+									pixel_color = a.ColourAdd(b).ColourAdd(c);
 								}
 								else {
 									pixel_color = ambient_lighting.ColourAdd(diffuse_reflection).ColourAdd(reflective_reflection);// .ColourAdd(refractive_reflection);				// addition of reflections and lightings
@@ -318,7 +322,6 @@ void renderPart(Camera camera, vector<Object*> objects, int imageHeight, int ima
 							tempBlue[aa_index] = pixel_color.blue;
 						}
 					}
-
 					// average the pixel color
 					double totalRed = 0;
 					double totalGreen = 0;
@@ -347,6 +350,11 @@ void renderPart(Camera camera, vector<Object*> objects, int imageHeight, int ima
 	}
 }
 
+Tree partition(int depth, int maxdepth) {
+	Tree T(depth, maxdepth, Vector(-10, -10, -10), Vector(10, 10, 10));
+	return T;
+}
+
 
 int main(int argc, char** argv) {
 	std::cout << "rendering ..." << std::endl;
@@ -357,71 +365,79 @@ int main(int argc, char** argv) {
 	std::vector< Vector > vertices;
 	std::vector< Vector2 > uvs;
 	std::vector< Vector > normals; // Won't be used at the moment.
-	bool res = loader.readFile("bunny.obj", vertices, uvs, normals);
+	if (TREE) {
+		bool res = loader.readFile("bunny.obj", vertices, uvs, normals);
+	}
 
 	// images properties
 	int imageWidth = 1024;
-	int imageHeight = 864;
+	int imageHeight = 1024;
 	int dpi = 72;
 	int numOfPixels = imageHeight * imageWidth;
 
-	Camera camera = createCamera();
+	Tree T = partition(0, 4);
+
+	Camera camera = createCamera(0, 8, 15);
 	// model colors
 	Colour color_white(255, 255, 255, 0, 0, 0);
 	Colour color_stonegrey(128, 128, 128, 0, 0, 0);
 	Colour color_winered(160, 0, 32, 0, 0, 0);
-	Colour color_mirror(255, 255, 255, 0, 1, 0);
+	Colour color_mirror(255, 255, 255, 0, 0.95, 0);
 	Colour color_green(34, 139, 34, 0, 0, 0);
 	Colour color_blue(50, 80, 200, 0, 0, 0);
 	Colour colour_cyan(0, 255, 255, 0, 0, 0);
 	Colour mirrorSphere(255, 255, 255, 0, 1, 0);
 	Colour darkPurple(57, 0, 130, 0, 0, 0);
-	Colour glass(0, 0, 0, 0, 1, 0);
+	Colour glass(0, 0, 0, 0, 0, 1);
 
 	vector<Object*> objects;
+	vector<Object*> triangles;
 	// model objects
 
-	for (int i = 0; i < 3000; i+=3) {
+	for (int i = 0; i < vertices.size(); i += 3) {
 		Object * tr = new Triangle(vertices[i], vertices[i + 1], vertices[i + 2], darkPurple);
-		objects.push_back(tr);
+		triangles.push_back(tr);
+		tr->setNormal(normals[i]);
 	}
 
-	Triangle ground1(Vector(-8.1, -3.9, 8.5), Vector(8.1, -3.9, 8.5), Vector(8.1, -3.9, -8.5), color_mirror);
-	Triangle ground2(Vector(8.1, -3.9, -8.5), Vector(-8.1, -3.9, -8.5), Vector(-8.1, -3.9, 8.5), color_mirror);
-	Triangle ceiling1(Vector(-8.1, 7.9, 8.5), Vector(8.1, 7.9, 8.5), Vector(8.1, 7.9, -8.5), darkPurple);
-	Triangle ceiling2(Vector(8.1, 7.9, -8.5), Vector(-8.1, 7.9, -8.5), Vector(-8.1, 7.9, 8.5), darkPurple);
+	T.assignTriangles(triangles);
+
+	Triangle ground1(Vector(-8.1, -3.9, 8.5), Vector(8.1, -3.9, 8.5), Vector(8.1, -3.9, -8.5), color_green);
+	Triangle ground2(Vector(8.1, -3.9, -8.5), Vector(-8.1, -3.9, -8.5), Vector(-8.1, -3.9, 8.5), color_green);
+	Triangle ceiling1(Vector(-8.1, 7.9, 8.5), Vector(8.1, 7.9, 8.5), Vector(8.1, 7.9, -8.5), color_stonegrey);
+	Triangle ceiling2(Vector(8.1, 7.9, -8.5), Vector(-8.1, 7.9, -8.5), Vector(-8.1, 7.9, 8.5), color_stonegrey);
 	Triangle wallBack1(Vector(-8.5, -4.1, -8), Vector(8.5, 8.1, -8), Vector(-8.5, 8.1, -8), color_stonegrey);
 	Triangle wallBack2(Vector(8.5, 8.1, -8), Vector(8.5, -4.1, -8), Vector(-8.5, -4.1, -8), color_stonegrey);
-	Triangle wallFront1(Vector(-8.1, -4.01, 8.1), Vector(8.1, 8.1, 8.1), Vector(-8.1, 8.1, 8.1), glass);
-	Triangle wallFront2(Vector(8.1, 8.1, 8.1), Vector(8.1, -4.01, 8.1), Vector(-8.1, -4.01, 8.1), glass);
+	Triangle wallFront1(Vector(-8.1 * 30, -4.01 * 30, 8.1 * 30), Vector(8.1 * 30, 8.1 * 30, 8.1 * 30), Vector(-8.1 * 30, 8.1 * 30, 8.1 * 30), color_stonegrey);
+	Triangle wallFront2(Vector(8.1 * 30, 8.1 * 30, 8.1 * 30), Vector(8.1 * 30, -4.01 * 30, 8.1 * 30), Vector(-8.1 * 30, -4.01 * 30, 8.1 * 30), color_stonegrey);
 	Triangle wallRight1(Vector(-8, 8.1, -8.1), Vector(-8, -4.1, -8.1), Vector(-8, 8.1, 8.1), color_blue);
 	Triangle wallRight2(Vector(-8, 8.1, 8.1), Vector(-8, -4.1, -8.1), Vector(-8, -4.1, 8.1), color_blue);
 	Triangle wallLeft1(Vector(8, 8.1, -8.1), Vector(8, -4.1, -8.1), Vector(8, 8.1, 8.1), color_winered);
 	Triangle wallLeft2(Vector(8, 8.1, 8.1), Vector(8, -4.1, -8.1), Vector(8, -4.1, 8.1), color_winered);
-	Sphere sphere(Vector(3, -2, 1), 0.8, colour_cyan);
-	Sphere sphere2(Vector(0, 3, -2), 3, glass);
-	Sphere sphere3(Vector(-2, 1, 3), 0.8, color_green);
-	Sphere sphere4(Vector(7, 1, -10), 2, colour_cyan);
+	Sphere sphere(Vector(3, -2, 1), 0.8, color_winered);
+	Sphere sphere2(Vector(0, 1, 0), 3, glass);
+	Sphere sphere3(Vector(0, 6, 0), 0.2, color_green);
+	Sphere sphere4(Vector(7, 1, -10), 2, color_winered);
 
-	/*objects.push_back(&sphere);
-	objects.push_back(&sphere2);
 	objects.push_back(&ground1);
 	objects.push_back(&ground2);
 	objects.push_back(&wallLeft1);
 	objects.push_back(&wallLeft2);
+	objects.push_back(&sphere);
+	objects.push_back(&sphere2);
 	objects.push_back(&sphere3);
-	//objects.push_back(&wallFront1);
-	//objects.push_back(&wallFront2);
+	objects.push_back(&wallFront1);
+	objects.push_back(&wallFront2);
 	objects.push_back(&wallRight1);
 	objects.push_back(&wallRight2);
 	objects.push_back(&ceiling1);
 	objects.push_back(&ceiling2);
 	objects.push_back(&wallBack1);
 	objects.push_back(&wallBack2);
-	//objects.push_back(&sphere4);*/
+	//objects.push_back(&sphere4);
 
 	// model light sources
-	Light light(Vector(0, 10, 0), color_white);
+	Light light(Vector(0, 7, 0), color_white);
 	vector<Source*> lights;
 	lights.push_back(&light);
 	t1 = clock();
@@ -429,7 +445,7 @@ int main(int argc, char** argv) {
 	std::vector<std::thread> threads;
 	RGBType *pixels = new RGBType[numOfPixels];
 	for (int i = 0; i < numThreads; ++i) {
-		threads.push_back(std::thread(renderPart, camera, objects, imageHeight, imageWidth, i* (imageWidth / numThreads), (i + 1) * (imageWidth / numThreads), lights, light, std::ref(pixels)));
+		threads.push_back(std::thread(renderPart, T, camera, objects, imageHeight, imageWidth, i* (imageWidth / numThreads), (i + 1) * (imageWidth / numThreads), lights, light, std::ref(pixels)));
 	}
 	for (auto& t : threads) {
 		t.join();

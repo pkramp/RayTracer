@@ -23,6 +23,13 @@ public:
 		return 0;
 	}
 
+	virtual void setNormal(Vector normal) {
+
+	}
+	virtual double getDistance(Vector to) {
+		return 0;
+	}
+
 };
 
 
