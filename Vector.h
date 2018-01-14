@@ -60,6 +60,17 @@ public:
 		return Vector(-x, -y, -z);
 	}
 
+	std::string print() {
+		std::string s;
+		s.append(std::to_string(x));
+		s.append(" ");
+		s.append(std::to_string(y));
+		s.append(" ");
+		s.append(std::to_string(z));
+		s.append("\n");
+		return s;
+	}
+
 };
 
 #endif

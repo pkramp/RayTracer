@@ -33,8 +33,9 @@ public:
 			if (strcmp(lineHeader, "v") == 0) {
 				float x,y,z = 0;
 				fscanf(file, "%f %f %f\n", &x, &y, &z);
-				Vector vertex(x, y, z);
-				vertex = vertex.vectMult(3);
+				Vector vertex(x-2, y+1, z);
+				//Vector vertex(x, y, z);
+				//vertex = vertex.vectMult(2);
 				temp_vertices.push_back(vertex);
 			}
 			else if (strcmp(lineHeader, "vt") == 0) {

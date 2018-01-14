@@ -46,8 +46,8 @@ public:
 
 		// quadaratic equation solution: http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter1.htm
 
-		double a = 1; // normalized
-		double b = (2 * (ray_origin_x - sphere_center_x)*ray_direction_x) + (2 * (ray_origin_y - sphere_center_y)*ray_direction_y) + (2 * (ray_origin_z - sphere_center_z)*ray_direction_z);
+		double a = pow(ray_direction_x, 2) + pow(ray_direction_y, 2) + pow(ray_direction_z, 2); //1; // normalized
+		double b = 2*(((ray_origin_x - sphere_center_x)*ray_direction_x) + ((ray_origin_y - sphere_center_y)*ray_direction_y) + ((ray_origin_z - sphere_center_z)*ray_direction_z));
 		double c = pow(ray_origin_x - sphere_center_x, 2) + pow(ray_origin_y - sphere_center_y, 2) + pow(ray_origin_z - sphere_center_z, 2) - (radius*radius);
 
 		double discriminant = b*b - 4 * c;		// solution of the quadratic sphere equation (root1/2)
@@ -56,19 +56,21 @@ public:
 			// the ray intersects the sphere
 
 			// the first root
-			double root_1 = ((-1 * b - sqrt(discriminant)) / 2) - 0.000001;
+			double root_1 = ((-1 * b - sqrt(discriminant)) / 2) /*+0.0001*/;
 
 			if (root_1 > 0) {
 				// the first root is the smallest positive root
 				intersection_position = ray.origin.vectAdd(ray.direction.vectMult(root_1));					// position of ray-sphere intersection
-
 				return root_1;
 			}
 			else {
 				// the second root is the smallest positive root
-				double root_2 = ((sqrt(discriminant) - b) / 2) - 0.000001; 
+				return -1;
+				double root_2 = ((-1 * b + sqrt(discriminant)) / 2) /*-0.000001*/;
+				if(root_2 < 0)
+					root_2 *= -1;
 				intersection_position = ray.origin.vectAdd(ray.direction.vectMult(root_2));					// position of ray-sphere intersection
-				//return -1;
+				
 				return root_2;
 			}
 		}
