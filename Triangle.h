@@ -1,8 +1,7 @@
 #pragma once
 #include "Object.h"
 #include "Vector.h"
-class Triangle :
-	public Object
+class Triangle : public Object
 {
 public:
 	Triangle();
@@ -20,10 +19,11 @@ public:
 		vertex2 = v2;
 		colour = col;
 	}
-
-
-	double intersect(Ray ray,
-		Vector& outIntersectionPoint)
+	/*
+	*Möller-Trumbore intersection algorithm implementation
+	*Taken from https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+	*/
+	double intersect(Ray ray, Vector& outIntersectionPoint)
 	{
 		const double EPSILON = 0.0000001;
 		Vector vertex0 = this->vertex0;
@@ -66,6 +66,7 @@ public:
 		Vector e0 = vertex1.vectSub(vertex0);
 		Vector e1 = vertex2.vectSub(vertex0);
 		Vector normal = e0.crossProduct(e1).normalize(); // this is the triangle's normal
+		// we want to hit triangles from both sides
 		if (normal.dotProduct(intersection_to_light_direction) <= 0)
 			return normal.negative();
 		return normal;

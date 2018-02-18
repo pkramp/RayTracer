@@ -44,8 +44,7 @@ public:
 		double sphere_center_y = sphere_center.y;
 		double sphere_center_z = sphere_center.z;
 
-		// quadaratic equation solution: http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter1.htm
-
+		// quadratic equation solution: http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter1.htm
 		double a = pow(ray_direction_x, 2) + pow(ray_direction_y, 2) + pow(ray_direction_z, 2); //1; // normalized
 		double b = 2*(((ray_origin_x - sphere_center_x)*ray_direction_x) + ((ray_origin_y - sphere_center_y)*ray_direction_y) + ((ray_origin_z - sphere_center_z)*ray_direction_z));
 		double c = pow(ray_origin_x - sphere_center_x, 2) + pow(ray_origin_y - sphere_center_y, 2) + pow(ray_origin_z - sphere_center_z, 2) - (radius*radius);
@@ -54,7 +53,6 @@ public:
 
 		if (discriminant > 0) {
 			// the ray intersects the sphere
-
 			// the first root
 			double root_1 = ((-1 * b - sqrt(discriminant)) / 2) /*+0.0001*/;
 
@@ -65,7 +63,9 @@ public:
 			}
 			else {
 				// the second root is the smallest positive root
-				return -1;
+				//we only want it
+				if(this->colour.transparency>0)
+					return -1;
 				double root_2 = ((-1 * b + sqrt(discriminant)) / 2) /*-0.000001*/;
 				if(root_2 < 0)
 					root_2 *= -1;

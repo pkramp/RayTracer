@@ -37,7 +37,6 @@ public:
 	double setColourSpecial(double specialValue) { special = specialValue; }
 	double setColourReflect(double reflectValue) { reflect = reflectValue; }
 
-
 	double brightness() {
 		return ((red + green + blue) / 3);
 	}
@@ -57,7 +56,6 @@ public:
 	Colour ColourAverage(Colour col) {
 		return Colour((red + col.getColourRed()) / 2, (green + col.getColourGreen()) / 2, (blue + col.getColourBlue()) / 2, special, reflect, transparency);
 	}
-
 
 	void normalizeRGB() {
 		red = (red > 255) ? 255 : (red < 0) ? 0 : red;

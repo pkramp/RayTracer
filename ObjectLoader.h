@@ -5,10 +5,18 @@
 #include "Vector.h"
 #include "Vector2.h"
 
+/*
+*This class reads .obj files and constructs triangles from given data
+*/
 class ObjectLoader {
-
 public:
-
+	/*
+	*reads the file and constructs triangles from it
+	*/
+	const float sizeFactor = 1;
+	const float xposAddition = -2;
+	const float yposAddition = 1;
+	const float zposAddition = 0;
 	bool readFile(const char * path, std::vector <Vector> & out_vertices, std::vector <Vector2> & out_uvs, std::vector <Vector> & out_normals) {
 		std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
 		std::vector< Vector > temp_vertices;
@@ -20,9 +28,7 @@ public:
 			printf("Impossible to open the file !\n");
 			return false;
 		}
-
 		while (1) {
-
 			char lineHeader[128];
 			// read the first word of the line
 			int res = fscanf(file, "%s", lineHeader);
@@ -31,11 +37,10 @@ public:
 
 			// else : parse lineHeader
 			if (strcmp(lineHeader, "v") == 0) {
-				float x,y,z = 0;
+				float x, y, z = 0;
 				fscanf(file, "%f %f %f\n", &x, &y, &z);
-				Vector vertex(x-2, y+1, z);
-				//Vector vertex(x, y, z);
-				//vertex = vertex.vectMult(2);
+				Vector vertex(x + xposAddition, y + yposAddition, z + zposAddition);
+				vertex = vertex.vectMult(1);
 				temp_vertices.push_back(vertex);
 			}
 			else if (strcmp(lineHeader, "vt") == 0) {
@@ -66,8 +71,6 @@ public:
 				normalIndices.push_back(normalIndex[0]);
 				normalIndices.push_back(normalIndex[1]);
 				normalIndices.push_back(normalIndex[2]);
-
-				
 			}
 		}
 		// For each vertex of each triangle
@@ -76,15 +79,12 @@ public:
 			Vector vertex = temp_vertices[vertexIndex - 1];
 			out_vertices.push_back(vertex);
 		}
-
 		for (unsigned int i = 0; i < normalIndices.size(); i++) {
 			unsigned int normalIndex = normalIndices[i];
 			Vector normal = temp_normals[normalIndex - 1];
 			out_normals.push_back(normal);
 		}
-
 	}
-
 };
 
 #endif ObjLoader_H

@@ -5,9 +5,11 @@ struct RGBType {
 	uint32_t b;
 };
 
-class BMP{
-
+class BMP {
 public:
+	/*
+	*Creates bmp header and then writes given buffer to bmp
+	*/
 	static void savebmp(const char *filename, int w, int h, int dpi, RGBType *data) {
 		FILE *f;
 		int k = w*h;

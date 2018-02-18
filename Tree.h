@@ -43,10 +43,12 @@ public:
 				for (Tree* T2 : T->children) {
 					for (Tree* T3 : T2->children) {
 						for (Tree* T4 : T3->children) {
-							if (tr->getDistance(T4->myBox->center) < distance)
-							{
-								distance = tr->getDistance(T4->myBox->center);
-								closest = T4;
+							for (Tree* T5 : T4->children) {
+								if (tr->getDistance(T5->myBox->center) < distance)
+								{
+									distance = tr->getDistance(T5->myBox->center);
+									closest = T5;
+								}
 							}
 						}
 					}
@@ -68,8 +70,10 @@ public:
 							for (Tree* T4 : T3->children) {
 								if (T4->myBox->intersect(ray))
 									for (Tree* T5 : T4->children) {
-										if (T5->myBox->intersect(ray)) {
-											thisItObjects.insert(std::end(thisItObjects), std::begin(T5->triangles), std::end(T5->triangles));
+										for (Tree* T6 : T5->children) {
+											if (T6->myBox->intersect(ray)) {
+												thisItObjects.insert(std::end(thisItObjects), std::begin(T6->triangles), std::end(T6->triangles));
+											}
 										}
 									}
 							}
